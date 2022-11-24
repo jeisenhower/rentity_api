@@ -1,5 +1,5 @@
 import express from 'express';
-import dbo from '../db/conn';
+import dbo from '../db/conn.js';
 import inspector from 'schema-inspector';
 import uuid from 'uuid';
 

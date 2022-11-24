@@ -1,7 +1,7 @@
 import express from 'express';
 import dbo from '../db/conn.js';
 import inspector from 'schema-inspector';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
@@ -89,11 +89,11 @@ router.post('/', checkAuth, async (req, res) => {
 
 
 
-    const entityId = uuid.v4();
+    const entityId = uuidv4();
 
     // Create the entity
     const dbCollection = dbo.getEntitiesCollection();
-    const result = await dbColentities.findOneAndUpdate({});lection.insertOne({
+    const result = await dbCollection.findOneAndUpdate({});lection.insertOne({
         entityId: entityId,
         collection: req.body.collection,
         collectionId: req.body.collectionId,

@@ -1,5 +1,5 @@
 import express from 'express';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import generateApiKey from 'generate-api-key';
 import dbo from '../db/conn.js';
 import hash from '../encryption.js';
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
     }
 
     // Generate a unique ID for the user
-    const publicId = uuid.v4();
+    const publicId = uuidv4();
 
     // Generate and store encrypted password based on input password in the headers
     const encrypted = hash.encrypt(req.body.password, undefined);

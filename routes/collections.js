@@ -1,6 +1,6 @@
 import express from 'express';
 import dbo from '../db/conn.js';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 
 // Route that returns information on the collections created by an organization as well as allows creators of an organization to create new collections and 
@@ -58,7 +58,7 @@ router.post('/', checkAuth, async (req, res) => {
 
     const collectionsCollection = dbo.getCollectionsCollection();
 
-    const collectionId = uuid.v4();
+    const collectionId = uuidv4();
 
     const organizationId = '';
     const organization = '';

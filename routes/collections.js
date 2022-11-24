@@ -22,9 +22,20 @@ async function checkAuth(req, res, next) {
         const organization = await organizations.findOne({publicId: req.headers['organizationid']});
         if (organization == null) {
             return res.status(401).json({
-                error: "Improper auth. Access denied."
+                error: "Organization does not exist. Access denied."
             });
         }
+
+        // Check that the provided API key matches the user profile api key
+        let encryptedAPIKey = organization.key;
+        let decryptedAPIKey = hash.decrypt(encryptedAPIKey);
+
+        if (req.headers['key'] !== decryptedAPIKey) {
+            return res.status(401).json({
+                error: "Access denied. Invalid API key."
+            });
+        }
+
         req.passedData = organization;
         next();
     } else if (req.headers['token']) {

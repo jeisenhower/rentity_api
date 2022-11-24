@@ -42,10 +42,12 @@ router.post('/', async (req, res) => {
     const organizations = dbo.getOrganizationsCollection();
     const duplicates = organizations.countDocuments({organization: req.body.organization});
 
+    console.log(`Duplicate organization name count: ${duplicates}`);
+
     if (duplicates > 0) {
         return res.status(403).json({
             error: "The organization name you provided already exists. Please choose another."
-        })
+        });
     }
 
     // Check the user's email format is correct

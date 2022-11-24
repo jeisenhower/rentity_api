@@ -49,7 +49,7 @@ router.post('/', async (req, res) => {
     const publicId = uuid.v4();
 
     // Generate and store encrypted password based on input password in the headers
-    const encrypted = hash.encrypt(req.body.password);
+    const encrypted = hash.encrypt(req.body.password, undefined);
 
     // Generate an API key/refresh token for the user
     const apiKey = generateApiKey({method: 'base32'});
@@ -58,6 +58,8 @@ router.post('/', async (req, res) => {
     // Use the same iv value that the password was hashed with
     const encryptedAPIKey = hash.encrypt(apiKey, encrypted.iv);
 
+    // NOTE: The key expiration date is a year from the day of creation of the account. This will not be needed in this iteration, but
+    // it may be nice to have in the future to enforce renewal of API keys for better security.
 
     // Move forward with creating the new user
     const user = {
@@ -69,6 +71,7 @@ router.post('/', async (req, res) => {
         iv: encrypted.iv,
         email: req.body.email,
         key: encryptedAPIKey,
+        keyExpiration: Date.now() + (1000*60*60*24*365),
         collections: 0,
         entities: 0,
         verified: false,

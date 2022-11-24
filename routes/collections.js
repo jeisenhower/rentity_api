@@ -16,10 +16,19 @@ async function checkAuth(req, res, next) {
     // a new organization object within the req object
     // If user is using api key, pass along the user profile in the passed data object added to the req object. If using access tokens, get the data from the
     // access token and pass it in the passed data object, as well as set a req.method variable as appropriate (either key or token).
-    if (req.headers['key'] !== undefined && req.headers['organizationid'] !== undefined) {
+    if (req.headers['key'] !== undefined && (req.headers['organizationid'] !== undefined || req.headers['organization'] !== undefined)) {
         // Look up the organization and see if the key matches the organization
         const organizations = dbo.getOrganizationsCollection();
-        const organization = await organizations.findOne({publicId: req.headers['organizationid']});
+        let organization = null;
+        if (req.headers['organizationid'] !== undefined) {
+            organization = await organizations.findOne({publicId: req.headers['organizationid']});
+        } else if (req.headers['organization'] !== undefined) {
+            organization = await organizations.findOne({organization: req.headers['organization']});
+        } else {
+            return res.status(401).json({
+                error: "Organization name or ID must be provided in addition to the API key in request headers."
+            })
+        }
         if (organization == null) {
             return res.status(401).json({
                 error: "Organization does not exist. Access denied."

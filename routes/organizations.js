@@ -38,6 +38,16 @@ router.post('/', async (req, res) => {
         });
     }
 
+    // Make sure that the organization name is unique
+    const organizations = dbo.getOrganizationsCollection();
+    const duplicates = organizations.countDocuments({organization: req.body.organization});
+
+    if (duplicates > 0) {
+        return res.status(403).json({
+            error: "The organization name you provided already exists. Please choose another."
+        })
+    }
+
     // Check the user's email format is correct
     if (!validateEmail(req.body.email)) {
         return res.status(400).json({

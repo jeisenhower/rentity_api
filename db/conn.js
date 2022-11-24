@@ -24,6 +24,7 @@ const dbo = {
     connectToDatabase: async function() {
         try {
             await client.connect();
+            console.log('Connected to database');
         } catch(err) {
             console.log(err);
         }

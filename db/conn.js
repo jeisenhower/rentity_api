@@ -21,7 +21,7 @@ const client = new MongoClient(process.env.DATABASE_URI);
 };*/
 
 const dbo = {
-    connectToDb: async function() {
+    connectToDatabase: async function() {
         try {
             await client.connect();
         } catch(err) {

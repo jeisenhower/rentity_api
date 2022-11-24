@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
 
     // Make sure that the organization name is unique
     const organizations = dbo.getOrganizationsCollection();
-    const duplicates = organizations.countDocuments({organization: req.body.organization});
+    const duplicates = await organizations.countDocuments({organization: req.body.organization});
 
     console.log(`Duplicate organization name count: ${duplicates}`);
 

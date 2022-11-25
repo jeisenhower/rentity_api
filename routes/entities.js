@@ -16,7 +16,7 @@ async function checkAuth(req, res, next) {
         const organizations = dbo.getOrganizationsCollection();
         let organization = null;
         if (req.headers['organizationid'] !== undefined) {
-            organization = await organizations.findOne({publicId: req.headers['organizationid']});
+            organization = await organizations.findOne({organizationId: req.headers['organizationid']});
         } else if (req.headers['organization'] !== undefined) {
             organization = await organizations.findOne({organization: req.headers['organization']});
         } else {
@@ -126,10 +126,18 @@ router.post('/', checkAuth, async (req, res) => {
         data: req.body.data
     });
 
-    // Return the result of the insert to the user
-    return res.status(201).json({
-        result: result
-    });
+    if (result.acknowledged) {
+        // Return the result of the insert to the user
+        return res.status(201).json({
+            result: result
+        });
+    } else {
+        return res.status(400).json({
+            error: "Could not store user account in the database. Please try again later."
+        });
+    }
+
+    
     
 });
 
@@ -143,7 +151,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
 
     // Match the API key with the provided entity ID. Find the entity specified here within the organization corresponding to the provided key
     const entities = dbo.getEntitiesCollection();
-    const entity = await entities.findOne({entityId: req.params.entityId, organizationId: req.passedData.publicId});
+    const entity = await entities.findOne({entityId: req.params.entityId, organizationId: req.passedData.organizationId});
 
 
     // Check that dateTime last updated matches
@@ -172,6 +180,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
 
     const result = await entities.replaceOne(query, entity);
 
+
     return res.status(200).json({
         result
     });
@@ -191,7 +200,7 @@ router.get('/', checkAuth, async (req, res) => {
 
     // Initialize the db query object
     let dbQueryObj = {
-        organizationId: req.passedData.publicId,
+        organizationId: req.passedData.organizationId,
     };
 
     // Initialize the limit value to 15

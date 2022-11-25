@@ -21,7 +21,7 @@ async function checkAuth(req, res, next) {
         const organizations = dbo.getOrganizationsCollection();
         let organization = null;
         if (req.headers['organizationid'] !== undefined) {
-            organization = await organizations.findOne({publicId: req.headers['organizationid']});
+            organization = await organizations.findOne({organizationId: req.headers['organizationid']});
         } else if (req.headers['organization'] !== undefined) {
             organization = await organizations.findOne({organization: req.headers['organization']});
         } else {
@@ -78,7 +78,7 @@ router.post('/', checkAuth, async (req, res) => {
     const organizationId = '';
     const organization = '';
     if (req.method == 'key') {
-        organizationId = req.passedData.publicId;
+        organizationId = req.passedData.organizationId;
         organization = req.passedData.organization;
     } else if (req.method == 'token') {
         organizationId = req.passedData.issuedById;
@@ -101,7 +101,7 @@ router.post('/', checkAuth, async (req, res) => {
         name: req.body.name,
         isPublic: isPublic,
         collectionId: collectionId,
-        creator: req.passedData.publicId,
+        creator: req.passedData.organizationId,
         organizationId: organizationId,
         organization: organization,
     };
@@ -115,12 +115,15 @@ router.post('/', checkAuth, async (req, res) => {
 
     if (result.acknowledged) {
         return res.status(201).json({
-            result: result
+            name: req.body.name,
+            collectionId: collectionId,
+            creator: req.passedData.organizationId,
+
         });
     } else {
         return res.status(400).json({
-            error: "Could not "
-        })
+            error: "Could not store user account in the database. Please try again later."
+        });
     }
     
 });

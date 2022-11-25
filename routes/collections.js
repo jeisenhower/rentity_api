@@ -98,7 +98,7 @@ router.post('/', checkAuth, async (req, res) => {
 
 
     // Make sure the collection name is unique for the user
-    const duplicates = collectionsCollection.countDocuments({organizationId: organizationId, name: name});
+    const duplicates = await collectionsCollection.countDocuments({organizationId: organizationId, name: name});
     if (duplicates > 0) {
         return res.status(400).json({
             error: "Each collection within an organization must have a unique name."

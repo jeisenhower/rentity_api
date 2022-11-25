@@ -74,6 +74,18 @@ router.post('/', checkAuth, async (req, res) => {
 
     const collectionsCollection = dbo.getCollectionsCollection();
 
+    // Convert name to all lower case and replace spaces with underscores
+    let name = req.body.name.toLowerCase();
+    name.split(' ').join('_');
+
+    // Make sure the collection name is unique for the user
+    const duplicates = collectionsCollection.countDocuments({organizationId: req.passedData.organizationId, name: name});
+    if (duplicates > 0) {
+        return res.status(400).json({
+            error: "Each collection within an organization must have a unique name."
+        });
+    }
+
     const collectionId = uuidv4();
 
     let organizationId = '';
@@ -98,12 +110,8 @@ router.post('/', checkAuth, async (req, res) => {
         isPublic = req.body.isPublic;
     }
 
-    // Convert name to all lower case and replace spaces with underscores
-    let name = req.body.name.toLowerCase();
-    name.split(' ').join('_');
-
     const collectionObj = {
-        name: req.body.name,
+        name: name,
         isPublic: isPublic,
         collectionId: collectionId,
         creator: req.passedData.organizationId,
@@ -120,7 +128,7 @@ router.post('/', checkAuth, async (req, res) => {
 
     if (result.acknowledged) {
         return res.status(201).json({
-            name: req.body.name,
+            name: name,
             collectionId: collectionId,
             creator: req.passedData.organizationId,
 

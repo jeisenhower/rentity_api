@@ -76,16 +76,9 @@ router.post('/', checkAuth, async (req, res) => {
 
     // Convert name to all lower case and replace spaces with underscores
     let name = req.body.name.toLowerCase();
-    name.replace(/ /g, '_');
+    name.replace(/\s+/g, '-');
     console.log(`name: ${name}`);
 
-    // Make sure the collection name is unique for the user
-    const duplicates = collectionsCollection.countDocuments({organizationId: req.passedData.organizationId, name: name});
-    if (duplicates > 0) {
-        return res.status(400).json({
-            error: "Each collection within an organization must have a unique name."
-        });
-    }
 
     const collectionId = uuidv4();
 
@@ -102,6 +95,17 @@ router.post('/', checkAuth, async (req, res) => {
             error: 'Improper authorization. Access denied'
         });
     }
+
+
+    // Make sure the collection name is unique for the user
+    const duplicates = collectionsCollection.countDocuments({organizationId: organizationId, name: name});
+    if (duplicates > 0) {
+        return res.status(400).json({
+            error: "Each collection within an organization must have a unique name."
+        });
+    }
+    console.log(`organizationId: ${organizationId}`);
+    console.log(`Duplicates: ${duplicates}`);
 
     // isPublic is used for access by other users. I may not use this and just use tokens specified to access certain collections and what permissions they
     // have to access those collections.

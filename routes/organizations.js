@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
 
     // convert the organization name to spaces replaced with underscores and all lowercase
     let org = req.body.organization.toLowerCase();
-    org.split(' ').join('_'); 
+    org.replaceAll(' ', '_'); 
 
     // Make sure that the organization name is unique
     const organizations = dbo.getOrganizationsCollection();

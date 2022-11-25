@@ -1,6 +1,7 @@
 import express from 'express';
 import dbo from '../db/conn.js';
 import { v4 as uuidv4 } from 'uuid';
+import hash from '../encryption.js';
 
 
 // Route that returns information on the collections created by an organization as well as allows creators of an organization to create new collections and 
@@ -96,6 +97,10 @@ router.post('/', checkAuth, async (req, res) => {
     if (req.body.isPublic !== undefined && typeof req.body.isPublic == "boolean") {
         isPublic = req.body.isPublic;
     }
+
+    // Convert name to all lower case and replace spaces with underscores
+    let name = req.body.name.toLowerCase();
+    name.split(' ').join('_');
 
     const collectionObj = {
         name: req.body.name,

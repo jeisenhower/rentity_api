@@ -101,6 +101,9 @@ router.post('/', async (req, res) => {
 
     const result = await orgCollection.insertOne(user);
 
+    // Set the api key in the headers
+    res.header('apikey', apiKey);
+
     return res.status(201).json({
         result: result
     });

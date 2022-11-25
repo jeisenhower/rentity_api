@@ -39,12 +39,12 @@ async function checkAuth(req, res, next) {
         let encryptedAPIKey = organization.key;
         let decryptedAPIKey = hash.decrypt(encryptedAPIKey);
 
-        if (req.headers['key'] !== decryptedAPIKey) {
+        if (req.headers['x-api-key'] !== decryptedAPIKey) {
             return res.status(401).json({
                 error: "Access denied. Invalid API key."
             });
         }
-
+        req.method = 'key';
         req.passedData = organization;
         next();
     } else if (req.headers['token']) {
@@ -65,7 +65,7 @@ async function checkAuth(req, res, next) {
 router.post('/', checkAuth, async (req, res) => {
     // Create a new collection for the organization
 
-    if (!req.body.name || !req.body.schema) {
+    if (!req.body.name) {
         return res.status(400).json({
             error: "Improper collection creation format"
         });
@@ -113,9 +113,16 @@ router.post('/', checkAuth, async (req, res) => {
 
     const result = await collectionsCollection.insertOne(collectionObj);
 
-    return res.status(201).json({
-        result: result
-    });
+    if (result.acknowledged) {
+        return res.status(201).json({
+            result: result
+        });
+    } else {
+        return res.status(400).json({
+            error: "Could not "
+        })
+    }
+    
 });
 
 

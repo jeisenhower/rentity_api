@@ -34,12 +34,13 @@ async function checkAuth(req, res, next) {
         let encryptedAPIKey = organization.key;
         let decryptedAPIKey = hash.decrypt(encryptedAPIKey);
 
-        if (req.headers['key'] !== decryptedAPIKey) {
+        if (req.headers['x-api-key'] !== decryptedAPIKey) {
             return res.status(401).json({
                 error: "Access denied. Invalid API key."
             });
         }
 
+        req.method = 'key';
         req.passedData = organization;
         next();
     } else if (req.headers['token']) {

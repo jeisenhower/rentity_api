@@ -39,15 +39,14 @@ router.post('/', async (req, res) => {
     }
 
     // convert the organization name to spaces replaced with underscores and all lowercase
-    let org = req.body.organization;
-    org = org.toLowerCase();
+    let org = req.body.organization.toLowerCase();
     org.split(' ').join('_'); 
 
     // Make sure that the organization name is unique
     const organizations = dbo.getOrganizationsCollection();
     let duplicates;
     try{
-        duplicates = await organizations.countDocuments({organization: req.body.organization});
+        duplicates = await organizations.countDocuments({organization: org});
     } catch (err) {
         return res.status(400).json({
             error: err

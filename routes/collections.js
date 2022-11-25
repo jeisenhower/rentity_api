@@ -64,11 +64,6 @@ async function checkAuth(req, res, next) {
 // entities within the collection.
 router.post('/', checkAuth, async (req, res) => {
     // Create a new collection for the organization
-    if (!req.authorized) {
-        return res.status(401).json({
-            error: "permission denied"
-        });
-    }
 
     if (!req.body.name || !req.body.schema) {
         return res.status(400).json({

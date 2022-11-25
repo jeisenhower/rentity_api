@@ -82,28 +82,43 @@ router.post('/', async (req, res) => {
 
     // Move forward with creating the new user
     const user = {
-        publicId: publicId,
+        organizationId: publicId,
         organization: req.body.organization,
         fname: req.body.fname,
         lname: req.body.lname,
         password: encrypted.encryptedContent,
-        iv: encrypted.iv,
         email: req.body.email,
         key: encryptedAPIKey,
         keyExpiration: Date.now() + (1000*60*60*24*365),
         collections: 0,
         entities: 0,
-        verified: false,
-        loggedIn: false
+        verified: true,
+        loggedIn: true
     };
 
     const orgCollection = dbo.getOrganizationsCollection();
 
     const result = await orgCollection.insertOne(user);
 
+    // Check if the storage was a success
+    if (result.acknowledged != true) {
+        return res.status(400).json({
+            error: "Could not store user account in the database. Please try again later."
+        });
+    }
 
-    return res.status(201).setHeader('apikey', apiKey).json({
-        result: result
+
+    // Send response to user
+    return res.status(201).setHeader('x-api-key', apiKey).json({
+        account: {
+            organizationId: publicId,
+            organization: req.body.organization,
+            fname: req.body.fname,
+            lname: req.body.lname,
+            email: req.body.email,
+            collection: 0,
+            entities: 0,
+        }
     });
     
 });

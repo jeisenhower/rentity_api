@@ -16,7 +16,7 @@ async function checkAuth(req, res, next) {
     // a new organization object within the req object
     // If user is using api key, pass along the user profile in the passed data object added to the req object. If using access tokens, get the data from the
     // access token and pass it in the passed data object, as well as set a req.method variable as appropriate (either key or token).
-    if (req.headers['key'] !== undefined && (req.headers['organizationid'] !== undefined || req.headers['organization'] !== undefined)) {
+    if (req.headers['x-api-key'] !== undefined && (req.headers['organizationid'] !== undefined || req.headers['organization'] !== undefined)) {
         // Look up the organization and see if the key matches the organization
         const organizations = dbo.getOrganizationsCollection();
         let organization = null;

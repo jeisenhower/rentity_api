@@ -76,8 +76,8 @@ router.post('/', checkAuth, async (req, res) => {
 
     const collectionId = uuidv4();
 
-    const organizationId = '';
-    const organization = '';
+    let organizationId = '';
+    let organization = '';
     if (req.method == 'key') {
         organizationId = req.passedData.organizationId;
         organization = req.passedData.organization;

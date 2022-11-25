@@ -76,7 +76,7 @@ router.post('/', checkAuth, async (req, res) => {
 
     // Convert name to all lower case and replace spaces with underscores
     let name = req.body.name.toLowerCase();
-    name.replace(/\s+/g, '-');
+    name = name.replace(/\s+/g, '-');
     console.log(`name: ${name}`);
 
 

@@ -76,7 +76,7 @@ router.post('/', checkAuth, async (req, res) => {
 
     // Convert name to all lower case and replace spaces with underscores
     let name = req.body.name.toLowerCase();
-    name.replaceAll(' ', '_');
+    name.replace(/ /g, '_');
     console.log(`name: ${name}`);
 
     // Make sure the collection name is unique for the user

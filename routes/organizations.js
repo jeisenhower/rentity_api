@@ -116,7 +116,7 @@ router.post('/', async (req, res) => {
     return res.status(201).setHeader('x-api-key', apiKey).json({
         account: {
             organizationId: publicId,
-            organization: req.body.organization,
+            organization: org,
             fname: req.body.fname,
             lname: req.body.lname,
             email: req.body.email,

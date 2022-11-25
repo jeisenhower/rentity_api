@@ -38,6 +38,11 @@ router.post('/', async (req, res) => {
         });
     }
 
+    // convert the organization name to spaces replaced with underscores and all lowercase
+    let org = req.body.organization;
+    org = org.toLowerCase();
+    org.split(' ').join('_'); 
+
     // Make sure that the organization name is unique
     const organizations = dbo.getOrganizationsCollection();
     let duplicates;
@@ -83,7 +88,7 @@ router.post('/', async (req, res) => {
     // Move forward with creating the new user
     const user = {
         organizationId: publicId,
-        organization: req.body.organization,
+        organization: org,
         fname: req.body.fname,
         lname: req.body.lname,
         password: encrypted.encryptedContent,

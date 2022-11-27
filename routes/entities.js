@@ -213,12 +213,12 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
         dateTimeLastUpdated: req.params.dateTimeLastUpdated
     };
 
-    const options = {
+    /*const options = {
         returnDocument: "after"
     };
 
-    const result = await entities.findOneAndReplace(query, entity, options);
-    //const result = await entities.replaceOne (query, entity);
+    const result = await entities.findOneAndReplace(query, entity, options);*/
+    const result = await entities.replaceOne (query, entity);
 
     if (!result.acknowledged) {
         return res.status({
@@ -227,7 +227,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     }
 
     return res.status(200).json({
-        result
+        entity: entity
     });
 
 });

@@ -63,7 +63,7 @@ async function checkAuth(req, res, next) {
 }
 
 router.post('/', checkAuth, async (req, res) => {
-    // Create a new facility with the given data
+    // Create a new entity with the given data
 
     
     if (req.body.collection === undefined) {
@@ -122,7 +122,7 @@ router.post('/', checkAuth, async (req, res) => {
 
     // Create the entity
     const dbCollection = dbo.getEntitiesCollection();
-    const result = await dbCollection.findOneAndUpdate({});lection.insertOne({
+    const result = await dbCollection.insertOne({
         entityId: entityId,
         collection: req.body.collection,
         collectionId: req.body.collectionId,

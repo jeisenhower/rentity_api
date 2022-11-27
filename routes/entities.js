@@ -353,10 +353,8 @@ router.get('/', checkAuth, async (req, res) => {
         entities: items,
         next: next
     });*/
+//<------------------------------------------------------------------------------------------------------------------------>
 
-
-
-    //const count = entities.countDocuments(dbQueryObj);
     const cursor = entities.find(dbQueryObj).sort({_id: -1});
 
     let i = 0;
@@ -365,11 +363,15 @@ router.get('/', checkAuth, async (req, res) => {
     await cursor.forEach(doc => {
         if (i < limit) {
             itemArray.push(doc);
-            i++;
-        } else if (i === limit) {
-            next = items[items.length - 1]._id;
-        }
+        } 
         
+        // Check if we have reached the end point for items that need to be returned. If we have, we set the 
+        // "next" value equal to the last value's _id so we can return all objects above its _id value in the
+        // next iteration or page.
+        if (i === limit - 1) {
+            next = doc._id;
+        }
+        i++;   
     });
 
     if (next == 0) {

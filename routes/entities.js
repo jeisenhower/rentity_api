@@ -263,7 +263,7 @@ router.get('/', checkAuth, async (req, res) => {
 
 
     // For each string in the split array, add to the query object to send to the database
-    for (paramString in paramArray) {
+    for (let paramString in paramArray) {
         // Each portion of the new array of strings split by the & sign should have an equal sign. Split based on those symbols
         let tempArray = paramString.split('=');
         // Check if the key is a mandatory key that is not user-determined (not part of the data key which is determined by the user). If it is one

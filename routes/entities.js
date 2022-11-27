@@ -355,7 +355,7 @@ router.get('/', checkAuth, async (req, res) => {
     });*/
 //<------------------------------------------------------------------------------------------------------------------------>
 
-    const cursor = entities.find(dbQueryObj).sort({_id: -1});
+    const cursor = entities.find(dbQueryObj).sort({_id: 1});
 
     let i = 0;
     let itemArray = [];

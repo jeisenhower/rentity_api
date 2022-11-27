@@ -309,7 +309,7 @@ router.get('/', checkAuth, async (req, res) => {
         } else if (tempArray[0] === 'next') {
             // Get the next set of returns for the query
             //dbQueryObj._id = {$lt: parseInt(tempArray[1])};
-            dbQueryObj._id = {$gt: parseInt(tempArray[1])};
+            dbQueryObj._id = {$gt: tempArray[1]};
         } else {
             // We must be dealing with the parameters that will be found within the data object of the entity
             dbQueryObj.data[tempArray[0]] = tempArray[1];

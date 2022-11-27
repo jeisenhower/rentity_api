@@ -66,7 +66,7 @@ async function checkAuth(req, res, next) {
 router.post('/', checkAuth, async (req, res) => {
     // Create a new collection for the organization
 
-    if (!req.body.name) {
+    if (req.body.name === undefined) {
         return res.status(400).json({
             error: "Improper collection creation format"
         });

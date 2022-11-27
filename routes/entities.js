@@ -1,10 +1,17 @@
-import express from 'express';
+import express, { query } from 'express';
 import dbo from '../db/conn.js';
 import inspector from 'schema-inspector';
 import { v4 as uuidv4 } from 'uuid';
 import hash from '../encryption.js';
 
 const router = express.Router();
+
+
+// NOTE: Every entity will now contain a status field that has default value of available. Users can use their own status system within the data object,
+// or they can use the api provided status field. They can override the default value to whatever naming system they want to use, but the default system
+// is available or unavailable.
+
+
 
 async function checkAuth(req, res, next) {
     // Get the api key and look up the corresponding account with it. Whatever user, if any, it corresponds to, pass the user's account info along by creating
@@ -123,6 +130,7 @@ router.post('/', checkAuth, async (req, res) => {
         organizationId: req.body.organizationId,
         createdBy: req.body.createdBy,
         dateTimeLastUpdated: Date.now(),
+        status: req.body.status,
         data: req.body.data
     });
 
@@ -145,7 +153,11 @@ router.post('/', checkAuth, async (req, res) => {
 router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     if (req.params.dateTimeLastUpdated === undefined) {
         return res.status(400).json({
-            error: "Unable to update the entity. DateTime last updated must be provided in milliseconds."
+            error: "Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds)."
+        });
+    } else if (req.params.entityId === undefined) {
+        return res.status(400).json({
+            error: "Unable to update entity. Both entity ID and datetime last updated must be provided (in milliseconds)."
         });
     }
 
@@ -161,6 +173,16 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
         });
     }
 
+    // Get the collection that the entity belongs to and check if it has a schema.
+    const collections = dbo.getCollectionsCollection();
+    const collection = await collections.findOne({collectionId: entity.collectionId});
+
+    if (collection == null) {
+        return res.status(404).json({
+            error: "Collection does not exist."
+        });
+    } 
+
     // DateTime last updated must match, so update the dateTimeLastUpdated field in the entity to the current dateTime
     entity.dateTimeLastUpdated = Date.now();
 
@@ -170,6 +192,15 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
         if (req.body.hasOwnProperty(key)) {
             // Add the property or change it
             entity.data[key] = req.body[key];
+        }
+    }
+
+    if (collection.schema !== undefined) {
+        // Check the newly modified entity against the schema in the collection
+        if (!inspector.validate(collection.schema, entity.data)) {
+            return res.status(400).json({
+                error: "The entity you are trying to modify belongs to a collection with a pre-defined schema. The entity's data must match that of the collection."
+            });
         }
     }
 

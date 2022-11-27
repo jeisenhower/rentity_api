@@ -328,10 +328,10 @@ router.get('/', checkAuth, async (req, res) => {
 
     console.log(items);
 
-    //const next = items[items.length - 1]._id;
-    const lastItem = items[items.length - 1];
-    console.log(`Last Item: ${lastItem}`);
-    const next = lastItem["_id"];
+    const next = items[items.length - 1]._id;
+    //const lastItem = items[items.length - 1];
+    //console.log(`Last Item: ${lastItem}`);
+    //const next = lastItem["_id"];
 
     return res.status(200).json({
         entities: items,

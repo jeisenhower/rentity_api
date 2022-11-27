@@ -253,6 +253,8 @@ router.get('/', checkAuth, async (req, res) => {
     // Get query string
     let queryString = req.url.substring(queryIndex+1);
 
+    console.log(`Query Index: ${queryIndex}`);
+
     if (queryIndex == -1) {
         // Set the query string equal to the default limit query parameter if there is no query string provided
         queryString = `limit=${limit}`;
@@ -266,6 +268,8 @@ router.get('/', checkAuth, async (req, res) => {
     for (let paramString in paramArray) {
         // Each portion of the new array of strings split by the & sign should have an equal sign. Split based on those symbols
         let tempArray = paramString.split('=');
+
+        console.log(`Temp array: ${tempArray[0]}, ${tempArray[1]}`);
         // Check if the key is a mandatory key that is not user-determined (not part of the data key which is determined by the user). If it is one
         // of those keys, simply add it to the query object if it is not in the query object already. Otherwise, add the parameter inside of the data
         // key to the query object in order to properly query for the desired user-defined field(s).

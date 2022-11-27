@@ -302,6 +302,10 @@ router.get('/', checkAuth, async (req, res) => {
         } else if (tempArray[0] === 'limit') {
             // Set the limit to the non-default value to determine how many documents will be returned
             limit = parseInt(tempArray[1]);
+            // Restrict the limit on the number of documents that can be returned at one time. I have set the limit to 50 here
+            if (limit > 50) {
+                limit = 50;
+            }
         } else if (tempArray[0] === 'next') {
             // Get the next set of returns for the query
             dbQueryObj._id = {$lt: parseInt(tempArray[1])};
@@ -314,7 +318,13 @@ router.get('/', checkAuth, async (req, res) => {
 
     // Query the database
     const entities = dbo.getEntitiesCollection();
-    const items = await entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
+    const result = await entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
+
+
+    // NOTE: This can be dangerous if the number of documents returned is too high and exceeds memory available on the machine it is running on. 
+    // It is better practice to use a forEach, however, I think the best solution for this particular case is to limit people from getting too
+    // many documents at one time.
+    const items = result.toArray();
 
     const next = items[items.length - 1]._id;
 

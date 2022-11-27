@@ -308,7 +308,8 @@ router.get('/', checkAuth, async (req, res) => {
             }
         } else if (tempArray[0] === 'next') {
             // Get the next set of returns for the query
-            dbQueryObj._id = {$lt: parseInt(tempArray[1])};
+            //dbQueryObj._id = {$lt: parseInt(tempArray[1])};
+            dbQueryObj._id = {$gt: parseInt(tempArray[1])};
         } else {
             // We must be dealing with the parameters that will be found within the data object of the entity
             dbQueryObj.data[tempArray[0]] = tempArray[1];
@@ -320,12 +321,14 @@ router.get('/', checkAuth, async (req, res) => {
 
     // Query the database
     const entities = dbo.getEntitiesCollection();
-    const result = entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
+    
 
-
+//<--------This section converts query result directly to an array. I think there is a better way to handle it that also allows for pagination.---------->
     // NOTE: This can be dangerous if the number of documents returned is too high and exceeds memory available on the machine it is running on. 
     // It is better practice to use a forEach, however, I think the best solution for this particular case is to limit people from getting too
     // many documents at one time.
+    /*
+    const result = entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
     const items = await result.toArray();
 
     // Check if the array is empty or only has one result
@@ -349,9 +352,36 @@ router.get('/', checkAuth, async (req, res) => {
     return res.status(200).json({
         entities: items,
         next: next
+    });*/
+
+
+
+    //const count = entities.countDocuments(dbQueryObj);
+    const cursor = entities.find(dbQueryObj).sort({_id: -1});
+
+    let i = 0;
+    let itemArray = [];
+    let next = 0;
+    await cursor.forEach(doc => {
+        if (i < limit) {
+            itemArray.push(doc);
+            i++;
+        } else if (i === limit) {
+            next = items[items.length - 1]._id;
+        }
+        
     });
 
-
+    if (next == 0) {
+        return res.status(200).json({
+            entities: itemArray
+        });
+    } else {
+        return res.status(200).json({
+            entities: itemArray,
+            next: next
+        });
+    }
     
 });
 

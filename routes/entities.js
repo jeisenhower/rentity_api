@@ -217,8 +217,8 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
         returnDocument: "after"
     };
 
-    //const result = await entities.findOneAndReplace(query, entity, options);
-    const result = await entities.replaceOne(query, entity, options);
+    const result = await entities.findOneAndReplace(query, entity, options);
+    //const result = await entities.replaceOne (query, entity);
 
     if (!result.acknowledged) {
         return res.status({

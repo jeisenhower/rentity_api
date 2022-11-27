@@ -239,10 +239,6 @@ router.get('/', checkAuth, async (req, res) => {
     // Initialize the limit value to 15
     let limit = 15;
 
-
-    let queryIndex = req.url.indexOf('?');
-
-
     // Initialize the db query object
     let dbQueryObj = {
         organizationId: req.passedData.organizationId,
@@ -250,15 +246,20 @@ router.get('/', checkAuth, async (req, res) => {
 
 
 
+    let queryIndex = req.url.indexOf('?');
+
     // Get query string
     let queryString = req.url.substring(queryIndex+1);
 
     console.log(`Query Index: ${queryIndex}`);
 
     if (queryIndex == -1) {
+        console.log('setting default query string limit value');
         // Set the query string equal to the default limit query parameter if there is no query string provided
         queryString = `limit=${limit}`;
     }
+
+    console.log(`Query string: ${queryString}`);
     
     // Divide by the & signs in the string
     let paramArray = queryString.split('&');

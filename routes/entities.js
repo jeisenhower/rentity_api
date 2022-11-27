@@ -253,7 +253,7 @@ router.get('/', checkAuth, async (req, res) => {
     // Get query string
     let queryString = req.url.substring(queryIndex+1);
 
-    if (queryIndex !== -1) {
+    if (queryIndex == -1) {
         // Set the query string equal to the default limit query parameter if there is no query string provided
         queryString = `limit=${limit}`;
     }

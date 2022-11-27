@@ -219,7 +219,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     const result = await entities.findOneAndReplace(query, entity, options);*/
     const result = await entities.replaceOne(query, entity);
 
-    if (!result.acknowledged) {
+    if (!result.acknowledged && result.modifiedCount == 1) {
         return res.status({
             error: "Could not update the entity due to server error. Please try again later."
         });
@@ -235,21 +235,32 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
 router.get('/', checkAuth, async (req, res) => {
     // Take in query parameters and query the database accordingly. Use the organization's public ID to restrict them to view only their own 
     // entities as well.
+
+    // Initialize the limit value to 15
+    let limit = 15;
+
+
     let queryIndex = req.url.indexOf('?');
 
-    // Get query string
-    let queryString = req.url.substring(queryIndex+1);
-    
-    // Divide by the & signs in the string
-    let paramArray = queryString.split('&');
 
     // Initialize the db query object
     let dbQueryObj = {
         organizationId: req.passedData.organizationId,
     };
 
-    // Initialize the limit value to 15
-    let limit = 15;
+
+
+    // Get query string
+    let queryString = req.url.substring(queryIndex+1);
+
+    if (queryIndex !== -1) {
+        // Set the query string equal to the default limit query parameter if there is no query string provided
+        queryString = `limit=${limit}`;
+    }
+    
+    // Divide by the & signs in the string
+    let paramArray = queryString.split('&');
+
 
     // For each string in the split array, add to the query object to send to the database
     for (paramString in paramArray) {
@@ -288,7 +299,7 @@ router.get('/', checkAuth, async (req, res) => {
             limit = parseInt(tempArray[1]);
         } else if (tempArray[0] === 'next') {
             // Get the next set of returns for the query
-            query._id = {$lt: parseInt(tempArray[1])};
+            dbQueryObj._id = {$lt: parseInt(tempArray[1])};
         } else {
             // We must be dealing with the parameters that will be found within the data object of the entity
             dbQueryObj.data[tempArray[0]] = tempArray[1];
@@ -298,7 +309,7 @@ router.get('/', checkAuth, async (req, res) => {
 
     // Query the database
     const entities = dbo.getEntitiesCollection();
-    const items = await entities.find(dbQueryObj).sort({_id: -1}).limit(req.query(limit));
+    const items = await entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
 
     const next = items[items.length - 1]._id;
 

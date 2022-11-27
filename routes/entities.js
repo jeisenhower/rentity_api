@@ -120,9 +120,8 @@ router.post('/', checkAuth, async (req, res) => {
 
     const entityId = uuidv4();
 
-    // Create the entity
-    const dbCollection = dbo.getEntitiesCollection();
-    const result = await dbCollection.insertOne({
+
+    const entityObj = {
         entityId: entityId,
         collection: req.body.collection,
         collectionId: req.body.collectionId,
@@ -132,12 +131,16 @@ router.post('/', checkAuth, async (req, res) => {
         dateTimeLastUpdated: Date.now(),
         status: req.body.status,
         data: req.body.data
-    });
+    };
+
+    // Create the entity
+    const dbCollection = dbo.getEntitiesCollection();
+    const result = await dbCollection.insertOne(entityObj);
 
     if (result.acknowledged) {
         // Return the result of the insert to the user
         return res.status(201).json({
-            result: result
+            entity: entityObj
         });
     } else {
         return res.status(400).json({

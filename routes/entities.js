@@ -318,13 +318,13 @@ router.get('/', checkAuth, async (req, res) => {
 
     // Query the database
     const entities = dbo.getEntitiesCollection();
-    const result = await entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
+    const result = entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
 
 
     // NOTE: This can be dangerous if the number of documents returned is too high and exceeds memory available on the machine it is running on. 
     // It is better practice to use a forEach, however, I think the best solution for this particular case is to limit people from getting too
     // many documents at one time.
-    const items = result.toArray();
+    const items = await result.toArray();
 
     console.log(items);
 

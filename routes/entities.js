@@ -266,7 +266,7 @@ router.get('/', checkAuth, async (req, res) => {
 
 
     // For each string in the split array, add to the query object to send to the database
-    for (let paramString in paramArray) {
+    for (let paramString of paramArray) {
         // Each portion of the new array of strings split by the & sign should have an equal sign. Split based on those symbols
         let tempArray = paramString.split('=');
 

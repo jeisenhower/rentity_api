@@ -326,7 +326,12 @@ router.get('/', checkAuth, async (req, res) => {
     // many documents at one time.
     const items = result.toArray();
 
-    const next = items[items.length - 1]._id;
+    console.log(items);
+
+    //const next = items[items.length - 1]._id;
+    const lastItem = items[items.length - 1];
+    console.log(`Last Item: ${lastItem}`);
+    const next = lastItem["_id"];
 
     return res.status(200).json({
         entities: items,

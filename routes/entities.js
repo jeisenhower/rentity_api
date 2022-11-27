@@ -3,6 +3,7 @@ import dbo from '../db/conn.js';
 import inspector from 'schema-inspector';
 import { v4 as uuidv4 } from 'uuid';
 import hash from '../encryption.js';
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
@@ -308,8 +309,9 @@ router.get('/', checkAuth, async (req, res) => {
             }
         } else if (tempArray[0] === 'next') {
             // Get the next set of returns for the query
-            //dbQueryObj._id = {$lt: parseInt(tempArray[1])};
-            dbQueryObj._id = {$gt: tempArray[1]};
+            // Convert the string to an objectId type object
+            const oid = new ObjectId(tempArray[1]);
+            dbQueryObj._id = {$gt: oid};
         } else {
             // We must be dealing with the parameters that will be found within the data object of the entity
             dbQueryObj.data[tempArray[0]] = tempArray[1];

@@ -129,7 +129,6 @@ router.post('/', checkAuth, async (req, res) => {
         organizationId: req.body.organizationId,
         createdBy: req.body.createdBy,
         dateTimeLastUpdated: Date.now(),
-        status: req.body.status,
         data: req.body.data
     };
 

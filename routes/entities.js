@@ -13,6 +13,14 @@ const router = express.Router();
 // is available or unavailable.
 
 
+function isInt(n){
+    return Number(n) === n && n % 1 === 0;
+}
+
+function isFloat(n){
+    return Number(n) === n && n % 1 !== 0;
+}
+
 
 async function checkAuth(req, res, next) {
     // Get the api key and look up the corresponding account with it. Whatever user, if any, it corresponds to, pass the user's account info along by creating
@@ -272,6 +280,17 @@ router.get('/', checkAuth, async (req, res) => {
         let tempArray = paramString.split('=');
 
         console.log(`Temp array: ${tempArray[0]}, ${tempArray[1]}`);
+
+        if (tempArray[1] == "true") {
+            tempArray[1] = true;
+        } else if (tempArray[1] == "false") {
+            tempArray[1] = false;
+        } else if (isInt(tempArray[1])) {
+            // We are dealing with an int
+            tempArray[1] = parseInt(tempArray[1]);
+        } else if (isFloat(tempArray[1])) {
+            tempArray[1] = parseFloat(tempArray[1]);
+        }
         // Check if the key is a mandatory key that is not user-determined (not part of the data key which is determined by the user). If it is one
         // of those keys, simply add it to the query object if it is not in the query object already. Otherwise, add the parameter inside of the data
         // key to the query object in order to properly query for the desired user-defined field(s).
@@ -314,7 +333,7 @@ router.get('/', checkAuth, async (req, res) => {
             dbQueryObj._id = {$gt: oid};
         } else {
             // We must be dealing with the parameters that will be found within the data object of the entity
-            dbQueryObj.data[tempArray[0]] = tempArray[1];
+            dbQueryObj.data[`${tempArray[0]}`] = `${tempArray[1]}`;
         }
         
     }

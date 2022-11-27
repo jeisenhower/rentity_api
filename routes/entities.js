@@ -170,7 +170,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
 
 
     // Check that dateTime last updated matches
-    if (req.params.dateTimeLastUpdated !== entity.dateTimeLastUpdated) {
+    if (parseInt(req.params.dateTimeLastUpdated) !== entity.dateTimeLastUpdated) {
         return res.status(400).json({
             error: "DateTime last updated does not match entity."
         });

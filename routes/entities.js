@@ -328,9 +328,14 @@ router.get('/', checkAuth, async (req, res) => {
     // many documents at one time.
     const items = await result.toArray();
 
+    // Check if the array is empty or only has one result
     if (items.length == 0) {
         return res.status(200).json({
             entities: "",
+        });
+    } else if (items.length == 1) {
+        return res.status(200).json({
+            entities: items[0]
         });
     }
 

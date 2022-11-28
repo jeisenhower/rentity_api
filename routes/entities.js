@@ -85,10 +85,6 @@ router.post('/', checkAuth, async (req, res) => {
         return res.status(400).json({
             error: "Improper entity format. Entity must specify a collection ID to which it belongs."
         });
-    } else if (req.body.createdBy === undefined) {
-        return res.status(400).json({
-            error: "Improper entity format. Entity must specify the organization ID that it was created by."
-        });
     } else if (req.body.data === undefined) {
         return res.status(400).json({
             error: "Improper entity format. Entity must have a field labeled data which contains the physical entity data"

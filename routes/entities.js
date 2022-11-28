@@ -281,11 +281,15 @@ router.get('/', checkAuth, async (req, res) => {
 
         console.log(`Temp array: ${tempArray[0]}, ${tempArray[1]}`);
 
+        // Check if the value should be transformed into a boolean
         if (tempArray[1] == "true") {
             tempArray[1] = true;
         } else if (tempArray[1] == "false") {
             tempArray[1] = false;
-        } else if (isInt(tempArray[1])) {
+        }
+        
+        // Check if the value should be transformed into an int or a float
+        if (isInt(tempArray[1])) {
             // We are dealing with an int
             tempArray[1] = parseInt(tempArray[1]);
         } else if (isFloat(tempArray[1])) {

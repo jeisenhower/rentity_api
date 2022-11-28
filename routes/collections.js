@@ -162,7 +162,7 @@ router.get('/', checkAuth, async (req, res) => {
 
     
 
-    let query = {organizationId: req.passedData.publicId};
+    let query = {organizationId: req.passedData.organizationId};
 
     // If there is a next parameter passed, change the query accordingly
     if (req.query.next !== undefined) {
@@ -175,6 +175,8 @@ router.get('/', checkAuth, async (req, res) => {
     // Run the query on the database and send result to user, along with the "next" value
     
     const collections = dbo.getCollectionsCollection();
+
+    console.log(`Query: ${JSON.stringify(query)}`);
 
     const cursor = collections.find(query).sort({_id: 1});
 

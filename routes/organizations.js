@@ -174,7 +174,7 @@ router.post('/', async (req, res) => {
     
 });
 
-router.get('/', verifyToken, (req, res) => {
+router.get('/', checkAuth, (req, res) => {
     // Returns the public data on an organization
 });
 

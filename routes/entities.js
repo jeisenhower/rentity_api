@@ -251,7 +251,6 @@ router.get('/', checkAuth, async (req, res) => {
     // Initialize the db query object
     let dbQueryObj = {
         organizationId: req.passedData.organizationId,
-        data: {}
     };
 
 
@@ -334,15 +333,16 @@ router.get('/', checkAuth, async (req, res) => {
             dbQueryObj._id = {$gt: oid};
         } else {
             // We must be dealing with the parameters that will be found within the data object of the entity
-            dbQueryObj.data[`${tempArray[0]}`] = `${tempArray[1]}`;
+            //dbQueryObj.data[`${tempArray[0]}`] = `${tempArray[1]}`;
+            dbQueryObj[`data.${tempArray[0]}`] = tempArray[1];
         }
         
     }
 
     // Determine if the data portion of the query object is empty. If it is empty, delete it from the query object
-    if (Object.keys(dbQueryObj.data).length === 0) {
+    /*if (Object.keys(dbQueryObj.data).length === 0) {
         delete dbQueryObj.data;
-    }
+    }*/
 
     console.log(`DB Query Object: ${JSON.stringify(dbQueryObj)}`);
 

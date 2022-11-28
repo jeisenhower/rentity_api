@@ -429,5 +429,53 @@ router.get('/', checkAuth, async (req, res) => {
     
 });
 
+router.post('/queries', checkAuth, async (req, res) => {
+    let limit = 15;
+
+    let dbQueryObj = req.body;
+
+    if (req.query.limit !== undefined) {
+        limit = req.query.limit;
+    }
+
+    if (req.query.next !== undefined) {
+        const oid = new ObjectId(req.query.next);
+        dbQueryObj._id = {$gt: oid};
+    }
+
+    console.log(req.query.limit);
+    console.log(req.query.next);
+
+    const cursor = entities.find(dbQueryObj).sort({_id: 1});
+
+    let i = 0;
+    let itemArray = [];
+    let next = 0;
+    await cursor.forEach(doc => {
+        if (i < limit) {
+            itemArray.push(doc);
+        } 
+        
+        // Check if we have reached the end point for items that need to be returned. If we have, we set the 
+        // "next" value equal to the last value's _id so we can return all objects above its _id value in the
+        // next iteration or page.
+        if (i === limit - 1) {
+            next = doc._id;
+        }
+        i++;   
+    });
+
+    if (next == 0) {
+        return res.status(200).json({
+            entities: itemArray
+        });
+    } else {
+        return res.status(200).json({
+            entities: itemArray,
+            next: next
+        });
+    }
+});
+
 
 export default router;

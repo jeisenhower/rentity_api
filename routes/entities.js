@@ -95,9 +95,9 @@ router.post('/', checkAuth, async (req, res) => {
     const collections = dbo.getCollectionsCollection();
 
     // Search for the collection that matches the collection and collection ID criteria that belongs to the organization that the user belongs to.
-    const collection = await collections.findOne({collectionId: req.body.collectionId, collection: req.body.collection,
+    const collection = await collections.findOne({collectionId: req.body.collectionId, name: req.body.collection,
         organizationId: req.passedData.organizationId});
-
+    
     if (collection == null) {
         return res.status(401).json({
             error: "No matching collection found within your organization. Access denied."

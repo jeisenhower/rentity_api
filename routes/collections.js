@@ -118,7 +118,7 @@ router.post('/', checkAuth, async (req, res) => {
         name: name,
         isPublic: isPublic,
         collectionId: collectionId,
-        creator: req.passedData.organizationId,
+        creator: req.passedData.createdBy,
         organizationId: organizationId,
         organization: organization,
     };

@@ -211,10 +211,5 @@ router.get('/', checkAuth, async (req, res) => {
 });
 
 
-// Create a new entity within a collection
-router.post('/:collectionName/entities', checkAuth, async (req, res) => {
-    // Get the collection and make sure it belongs to the ogranization
-}); 
-
 
 export default router;

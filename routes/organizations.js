@@ -16,10 +16,57 @@ const validateEmail = (email) => {
   };
 
 
-// TODO: Implement this function
-const verifyToken = (req, res, next) => {
-    next();
-};
+  async function checkAuth(req, res, next) {
+    // Get the api key and look up the corresponding account with it. Whatever user, if any, it corresponds to, pass the user's account info along by creating
+     // a new organization object within the req object
+     // If user is using api key, pass along the user profile in the passed data object added to the req object. If using access tokens, get the data from the
+     // access token and pass it in the passed data object, as well as set a req.method variable as appropriate (either key or token).
+     if (req.headers['x-api-key'] !== undefined && (req.headers['organizationid'] !== undefined || req.headers['organization'] !== undefined)) {
+         // Look up the organization and see if the key matches the organization
+         const organizations = dbo.getOrganizationsCollection();
+         let organization = null;
+         if (req.headers['organizationid'] !== undefined) {
+             organization = await organizations.findOne({organizationId: req.headers['organizationid']});
+         } else if (req.headers['organization'] !== undefined) {
+             organization = await organizations.findOne({organization: req.headers['organization']});
+         } else {
+             return res.status(401).json({
+                 error: "Organization name or ID must be provided in addition to the API key in request headers."
+             })
+         }
+         if (organization == null) {
+             return res.status(401).json({
+                 error: "Organization does not exist. Access denied."
+             });
+         }
+ 
+         // Check that the provided API key matches the user profile api key
+         let encryptedAPIKey = organization.key;
+         let decryptedAPIKey = hash.decrypt(encryptedAPIKey);
+ 
+         if (req.headers['x-api-key'] !== decryptedAPIKey) {
+             return res.status(401).json({
+                 error: "Access denied. Invalid API key."
+             });
+         }
+         //req.passedData = organization;
+         req.passedData = {
+             organization: organization.organization,
+             organizationId: organization.organizationId,
+             createdBy: organization.organizationId
+         };
+         next();
+     } else if (req.headers['token']) {
+         return res.status(401).json({
+             error: "The Rentity API does not yet support the use of tokens; only API keys at the moment. Please check back later."
+         });
+     } else {
+         return res.status(401).json({
+             error: "Auth format not recognized."
+         });
+     }
+     
+ }
 
 
 // Creates a user and generates an API key for that user. The user can then use that API key to create collections and entities. They will have to create a 
@@ -127,10 +174,164 @@ router.post('/', async (req, res) => {
     
 });
 
-
 router.get('/', verifyToken, (req, res) => {
     // Returns the public data on an organization
 });
 
+
+// <------------ Begin "experimental routes". We will see if these make for a better use experience than the non-hierarchical routes ------------->
+
+// Create a new collection within an organization
+router.post('/:orgName/collections', checkAuth, async (req, res) => {
+    let organizationId = req.passedData.organizationId;
+    let organization = req.passedData.organization;
+    if (organizationId === undefined || organization === undefined) {
+        return res.status(401).json({
+            error: 'Improper authorization. Access denied'
+        });
+    }
+
+    // Check that the orgName matches the organization corresponding to key or token provided.
+    if (req.params.orgName !== organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    }
+
+    if (req.body.name === undefined) {
+        return res.status(400).json({
+            error: "Improper collection creation format"
+        });
+    }
+
+    const collectionsCollection = dbo.getCollectionsCollection();
+
+    // Convert name to all lower case and replace spaces with underscores
+    let name = req.body.name.toLowerCase();
+    name = name.replace(/\s+/g, '-');
+    console.log(`name: ${name}`);
+
+
+    const collectionId = uuidv4();
+
+
+    // Make sure the collection name is unique for the user
+    const duplicates = await collectionsCollection.countDocuments({organizationId: organizationId, name: name});
+    if (duplicates > 0) {
+        return res.status(400).json({
+            error: "Each collection within an organization must have a unique name."
+        });
+    }
+    console.log(`organizationId: ${organizationId}`);
+    console.log(`Duplicates: ${duplicates}`);
+
+    // isPublic is used for access by other users. I may not use this and just use tokens specified to access certain collections and what permissions they
+    // have to access those collections.
+
+    let isPublic = false;
+    if (req.body.isPublic !== undefined && typeof req.body.isPublic == "boolean") {
+        isPublic = req.body.isPublic;
+    }
+
+    const collectionObj = {
+        name: name,
+        isPublic: isPublic,
+        collectionId: collectionId,
+        creator: req.passedData.createdBy,
+        organizationId: organizationId,
+        organization: organization,
+    };
+
+    // One last thing to do is decide if we should include a schema key
+    if (req.body.schema !== undefined) {
+        collectionObj.schema = req.body.schema;
+    }
+
+    const result = await collectionsCollection.insertOne(collectionObj);
+
+    if (result.acknowledged) {
+        return res.status(201).json({
+            name: name,
+            collectionId: collectionId,
+            creator: req.passedData.organizationId,
+
+        });
+    } else {
+        return res.status(400).json({
+            error: "Could not store user account in the database. Please try again later."
+        });
+    }
+});
+
+
+// Create a new entity within a collection within an organization
+router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (req, res) => {
+    // All that is required in the body is the portion of the object that will be placed inside the data field. Thus, there is no need to 
+    // label it as data. We can just put whatever we want in the body.
+
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    } 
+
+    // Query the collection with the organization name, ID, and the collection name
+    const collections = dbo.getCollectionsCollection();
+    const collection = await collections.findOne({
+        name: req.params.collectionName, organizationId: req.passedData.organizationId,
+        organization: req.passedData.organization
+    });
+
+    if (collection == null) {
+        return res.status(401).json({
+            error: "No matching collection found within the organization. Access denied."
+        });
+    }
+
+
+    // The collection exists. Check if it has a schema
+    if (collection.schema !== undefined) {
+        // Check the schema against the data field provided in the request body
+        if (!inspector.validate(collection.schema, req.body.data)) {
+            return res.status(400).json({
+                error: "Entity does not match schema of the collection. All entities within a collection with a specified schema must match that schema"
+            });
+        }
+    } 
+
+
+
+    const entityId = uuidv4();
+
+
+    const entityObj = {
+        entityId: entityId,
+        collection: collection.name,
+        collectionId: collection.collectionId,
+        organization: req.passedData.organization,
+        organizationId: req.passedData.organizationId,
+        createdBy: req.passedData.createdBy,
+        dateTimeLastUpdated: Date.now(),
+        data: req.body
+    };
+
+    // Create the entity
+    const dbCollection = dbo.getEntitiesCollection();
+    const result = await dbCollection.insertOne(entityObj);
+
+    if (result.acknowledged) {
+        // Return the result of the insert to the user
+        return res.status(201).json({
+            entity: entityObj
+        });
+    } else {
+        return res.status(400).json({
+            error: "Could not store user account in the database. Please try again later."
+        });
+    }
+});
+
+
+// <---------------------------------------------------------------------------------------------------------------------------------------------->
 
 export default router;

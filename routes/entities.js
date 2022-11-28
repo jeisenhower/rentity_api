@@ -100,7 +100,7 @@ router.post('/', checkAuth, async (req, res) => {
     
     if (collection == null) {
         return res.status(401).json({
-            error: "No matching collection found within your organization. Access denied."
+            error: "No matching collection found within the organization. Access denied."
         });
     }
 

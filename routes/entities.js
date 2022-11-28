@@ -340,11 +340,11 @@ router.get('/', checkAuth, async (req, res) => {
     }
 
     // Determine if the data portion of the query object is empty. If it is empty, delete it from the query object
-    if (Object.keys(dbQueryObj).length === 0) {
+    if (Object.keys(dbQueryObj.data).length === 0) {
         delete dbQueryObj.data;
     }
 
-    console.log(`DB Query Object: ${dbQueryObj}`);
+    console.log(`DB Query Object: ${JSON.stringify(dbQueryObj)}`);
 
     // Query the database
     const entities = dbo.getEntitiesCollection();

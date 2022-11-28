@@ -420,6 +420,70 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
 });
 
 
+// Query the entities within a collection within an organization (advanced query)
+router.post('/:orgName/collections/:collectionName/entities/queries', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    } 
+
+    let limit = 15;
+
+    let dbQueryObj = req.body;
+
+    // Add the organization data corresponding to the provided api key to the query object
+    dbQueryObj.organizationId = req.passedData.organizationId;
+    dbQueryObj.organization = req.passedData.organization;
+    dbQueryObj.collection = req.params.collectionName;
+
+    if (req.query.limit !== undefined) {
+        limit = req.query.limit;
+    }
+
+    if (req.query.next !== undefined) {
+        const oid = new ObjectId(req.query.next);
+        dbQueryObj._id = {$gt: oid};
+    }
+
+    console.log(req.query.limit);
+    console.log(req.query.next);
+
+    const entities = dbo.getEntitiesCollection();
+
+    const cursor = entities.find(dbQueryObj).sort({_id: 1});
+
+    let i = 0;
+    let itemArray = [];
+    let next = 0;
+    await cursor.forEach(doc => {
+        if (i < limit) {
+            itemArray.push(doc);
+        } 
+        
+        // Check if we have reached the end point for items that need to be returned. If we have, we set the 
+        // "next" value equal to the last value's _id so we can return all objects above its _id value in the
+        // next iteration or page.
+        if (i === limit - 1) {
+            next = doc._id;
+        }
+        i++;   
+    });
+
+    if (next == 0) {
+        return res.status(200).json({
+            entities: itemArray
+        });
+    } else {
+        return res.status(200).json({
+            entities: itemArray,
+            next: next
+        });
+    }
+
+});
+
+
 // <---------------------------------------------------------------------------------------------------------------------------------------------->
 
 export default router;

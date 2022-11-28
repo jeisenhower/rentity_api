@@ -46,8 +46,12 @@ async function checkAuth(req, res, next) {
                 error: "Access denied. Invalid API key."
             });
         }
-        req.method = 'key';
-        req.passedData = organization;
+        //req.passedData = organization;
+        req.passedData = {
+            organization: organization.organization,
+            organizationId: organization.organizationId,
+            createdBy: organization.organizationId
+        };
         next();
     } else if (req.headers['token']) {
         return res.status(401).json({
@@ -83,15 +87,9 @@ router.post('/', checkAuth, async (req, res) => {
 
     const collectionId = uuidv4();
 
-    let organizationId = '';
-    let organization = '';
-    if (req.method == 'key') {
-        organizationId = req.passedData.organizationId;
-        organization = req.passedData.organization;
-    } else if (req.method == 'token') {
-        organizationId = req.passedData.issuedById;
-        organization = req.passedData.issuedBy;
-    } else {
+    let organizationId = req.passedData.organizationId;
+    let organization = req.passedData.organization;
+    if (organizationId === undefined || organization === undefined) {
         return res.status(401).json({
             error: 'Improper authorization. Access denied'
         });
@@ -211,6 +209,12 @@ router.get('/', checkAuth, async (req, res) => {
     // When the user wants to get the next set of the query, they simply add that to their previous query parameter set
 
 });
+
+
+// Create a new entity within a collection
+router.post('/:collectionName/entities', checkAuth, async (req, res) => {
+    // Get the collection and make sure it belongs to the ogranization
+}); 
 
 
 export default router;

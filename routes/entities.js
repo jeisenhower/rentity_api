@@ -55,9 +55,12 @@ async function checkAuth(req, res, next) {
                 error: "Access denied. Invalid API key."
             });
         }
-
-        req.method = 'key';
-        req.passedData = organization;
+        //req.passedData = organization;
+        req.passedData = {
+            organization: organization.organization,
+            organizationId: organization.organizationId,
+            createdBy: organization.organizationId
+        };
         next();
     } else if (req.headers['token']) {
         return res.status(401).json({
@@ -73,7 +76,6 @@ async function checkAuth(req, res, next) {
 
 router.post('/', checkAuth, async (req, res) => {
     // Create a new entity with the given data
-
     
     if (req.body.collection === undefined) {
         return res.status(400).json({
@@ -82,14 +84,6 @@ router.post('/', checkAuth, async (req, res) => {
     } else if (req.body.collectionId === undefined) {
         return res.status(400).json({
             error: "Improper entity format. Entity must specify a collection ID to which it belongs."
-        });
-    } else if (req.body.organization === undefined) {
-        return res.status(400).json({
-            error: "Improper entity format. Entity must specify the name organization to which it belongs."
-        });
-    } else if (req.body.organizationId === undefined) {
-        return res.status(400).json({
-            error: "Improper entity format. Entity must specify the organization ID to which it belongs."
         });
     } else if (req.body.createdBy === undefined) {
         return res.status(400).json({
@@ -104,11 +98,13 @@ router.post('/', checkAuth, async (req, res) => {
     // Get the collection to which the entity will belong and check if it has a schema
     const collections = dbo.getCollectionsCollection();
 
-    const collection = await collections.findOne({collectionId: req.body.collectionId});
+    // Search for the collection that matches the collection and collection ID criteria that belongs to the organization that the user belongs to.
+    const collection = await collections.findOne({collectionId: req.body.collectionId, collection: req.body.collection,
+        organizationId: req.passedData.organizationId});
 
     if (collection == null) {
-        return res.status(404).json({
-            error: "No collection found with matching collection ID"
+        return res.status(401).json({
+            error: "No matching collection found within your organization. Access denied."
         });
     }
 
@@ -134,9 +130,9 @@ router.post('/', checkAuth, async (req, res) => {
         entityId: entityId,
         collection: req.body.collection,
         collectionId: req.body.collectionId,
-        organization: req.body.organization,
-        organizationId: req.body.organizationId,
-        createdBy: req.body.createdBy,
+        organization: req.passedData.organization,
+        organizationId: req.passedData.organizationId,
+        createdBy: req.passedData.createdBy,
         dateTimeLastUpdated: Date.now(),
         data: req.body.data
     };

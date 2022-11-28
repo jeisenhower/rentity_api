@@ -229,7 +229,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     const result = await entities.findOneAndReplace(query, entity, options);*/
     const result = await entities.replaceOne(query, entity);
 
-    if (!result.acknowledged && result.modifiedCount == 1) {
+    if (!result.acknowledged || result.modifiedCount !== 1) {
         return res.status({
             error: "Could not update the entity due to server error. Please try again later."
         });

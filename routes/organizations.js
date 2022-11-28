@@ -405,14 +405,9 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
         dateTimeLastUpdated: parseInt(req.params.dateTimeLastUpdated)
     };
 
-    /*const options = {
-        returnDocument: "after"
-    };
-
-    const result = await entities.findOneAndReplace(query, entity, options);*/
     const result = await entities.replaceOne(query, entity);
 
-    if (!result.acknowledged && result.modifiedCount == 1) {
+    if (!result.acknowledged || result.modifiedCount !== 1) {
         return res.status({
             error: "Could not update the entity due to server error. Please try again later."
         });

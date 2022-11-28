@@ -2,6 +2,7 @@ import express from 'express';
 import dbo from '../db/conn.js';
 import { v4 as uuidv4 } from 'uuid';
 import hash from '../encryption.js';
+import { ObjectId } from 'mongodb';
 
 
 // Route that returns information on the collections created by an organization as well as allows creators of an organization to create new collections and 
@@ -166,21 +167,44 @@ router.get('/', checkAuth, async (req, res) => {
     // If there is a next parameter passed, change the query accordingly
     if (req.query.next !== undefined) {
         // We get the next set of returns for the query presented
-        query._id = {$lt: req.query.next}; 
+        const oid = new ObjectId(req.query.next);
+        query._id = {$gt: oid}; 
     }
 
 
     // Run the query on the database and send result to user, along with the "next" value
     
     const collections = dbo.getCollectionsCollection();
-    items = await collections.find(query).sort({_id: -1}).limit(req.query(limit));
 
-    const next = items[items.length - 1]._id;
+    const cursor = entities.find(dbQueryObj).sort({_id: 1});
 
-    return res.status(200).json({
-        items: items,
-        next: next
+    let i = 0;
+    let itemArray = [];
+    let next = 0;
+    await cursor.forEach(doc => {
+        if (i < limit) {
+            itemArray.push(doc);
+        } 
+        
+        // Check if we have reached the end point for items that need to be returned. If we have, we set the 
+        // "next" value equal to the last value's _id so we can return all objects above its _id value in the
+        // next iteration or page.
+        if (i === limit - 1) {
+            next = doc._id;
+        }
+        i++;   
     });
+
+    if (next == 0) {
+        return res.status(200).json({
+            entities: itemArray
+        });
+    } else {
+        return res.status(200).json({
+            entities: itemArray,
+            next: next
+        });
+    }
 
     // When the user wants to get the next set of the query, they simply add that to their previous query parameter set
 

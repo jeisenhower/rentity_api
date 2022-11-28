@@ -166,7 +166,16 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
 
     // Match the API key with the provided entity ID. Find the entity specified here within the organization corresponding to the provided key
     const entities = dbo.getEntitiesCollection();
-    const entity = await entities.findOne({entityId: req.params.entityId, organizationId: req.passedData.organizationId});
+    const entity = await entities.findOne({
+        entityId: req.params.entityId,
+        organizationId: req.passedData.organizationId
+    });
+
+    if (entity == null) {
+        return res.status(401).json({
+            error: "No matching entity found within the organization. Access denied."
+        });
+    }
 
 
     // Check that dateTime last updated matches

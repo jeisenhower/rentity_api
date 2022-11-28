@@ -331,6 +331,99 @@ router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (r
     }
 });
 
+router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    } else if (req.params.dateTimeLastUpdated === undefined) {
+        return res.status(400).json({
+            error: "Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds)."
+        });
+    } else if (req.params.entityId === undefined) {
+        return res.status(400).json({
+            error: "Unable to update entity. Both entity ID and datetime last updated must be provided (in milliseconds)."
+        });
+    }
+
+    // Match the API key with the provided entity ID. Find the entity specified here within the organization corresponding to the provided key
+    const entities = dbo.getEntitiesCollection();
+    const entity = await entities.findOne({
+        entityId: req.params.entityId,
+        collection: req.params.collectionName,
+        organizationId: req.passedData.organizationId
+    });
+
+    if (entity == null) {
+        return res.status(401).json({
+            error: "No matching entity found within the organization. Access denied."
+        });
+    }
+
+
+    // Check that dateTime last updated matches
+    if (parseInt(req.params.dateTimeLastUpdated) !== entity.dateTimeLastUpdated) {
+        return res.status(400).json({
+            error: "DateTime last updated does not match entity."
+        });
+    }
+
+    // Get the collection that the entity belongs to and check if it has a schema.
+    const collections = dbo.getCollectionsCollection();
+    const collection = await collections.findOne({collectionId: entity.collectionId});
+
+    if (collection == null) {
+        return res.status(404).json({
+            error: "Collection does not exist."
+        });
+    } 
+
+    // DateTime last updated must match, so update the dateTimeLastUpdated field in the entity to the current dateTime
+    entity.dateTimeLastUpdated = Date.now();
+
+    // Change the entity based on the entity ID provided.
+    // Only allow changes to occur within the data field of the entity
+    for (var key in req.body) {
+        if (req.body.hasOwnProperty(key)) {
+            // Add the property or change it
+            entity.data[key] = req.body[key];
+        }
+    }
+
+    if (collection.schema !== undefined) {
+        // Check the newly modified entity against the schema in the collection
+        if (!inspector.validate(collection.schema, entity.data)) {
+            return res.status(400).json({
+                error: "The entity you are trying to modify belongs to a collection with a pre-defined schema. The entity's data must match that of the collection."
+            });
+        }
+    }
+
+    const query = {
+        organizationId: entity.organizationId,
+        entityId: entity.entityId,
+        dateTimeLastUpdated: parseInt(req.params.dateTimeLastUpdated)
+    };
+
+    /*const options = {
+        returnDocument: "after"
+    };
+
+    const result = await entities.findOneAndReplace(query, entity, options);*/
+    const result = await entities.replaceOne(query, entity);
+
+    if (!result.acknowledged && result.modifiedCount == 1) {
+        return res.status({
+            error: "Could not update the entity due to server error. Please try again later."
+        });
+    }
+
+    return res.status(200).json({
+        result: result,
+        entity: entity
+    });
+});
+
 
 // <---------------------------------------------------------------------------------------------------------------------------------------------->
 

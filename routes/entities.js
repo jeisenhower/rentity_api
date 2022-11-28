@@ -285,13 +285,13 @@ router.get('/', checkAuth, async (req, res) => {
         if (tempArray[1].indexOf('.') === -1) {
             // Attempt to cast to an int
             let attemptedParse = parseInt(tempArray[1]);
-            if (attemptedParse !== NaN) {
+            if (attemptedParse !== NaN && attemptedParse !== null) {
                 tempArray[1] = attemptedParse;
             }
         } else {
             // Attempt to cast to a float
             let attemptedParse = parseFloat(tempArray[1]);
-            if (attemptedParse !== NaN) {
+            if (attemptedParse !== NaN && attemptedParse !== null) {
                 tempArray[1] = attemptedParse;
             }
         }

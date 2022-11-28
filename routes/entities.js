@@ -289,12 +289,21 @@ router.get('/', checkAuth, async (req, res) => {
         }
         
         // Check if the value should be transformed into an int or a float
-        if (isInt(tempArray[1])) {
-            // We are dealing with an int
-            tempArray[1] = parseInt(tempArray[1]);
-        } else if (isFloat(tempArray[1])) {
-            tempArray[1] = parseFloat(tempArray[1]);
+        if (tempArray[1].indexOf('.') === -1) {
+            // Attempt to cast to an int
+            let attemptedParse = parseInt(tempArray[1]);
+            if (attemptedParse !== NaN) {
+                tempArray[1] = attemptedParse;
+            }
+        } else {
+            // Attempt to cast to a float
+            let attemptedParse = parseFloat(tempArray[1]);
+            if (attemptedParse !== NaN) {
+                tempArray[1] = attemptedParse;
+            }
         }
+
+
         // Check if the key is a mandatory key that is not user-determined (not part of the data key which is determined by the user). If it is one
         // of those keys, simply add it to the query object if it is not in the query object already. Otherwise, add the parameter inside of the data
         // key to the query object in order to properly query for the desired user-defined field(s).

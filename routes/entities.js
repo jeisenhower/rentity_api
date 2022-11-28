@@ -434,6 +434,9 @@ router.post('/queries', checkAuth, async (req, res) => {
 
     let dbQueryObj = req.body;
 
+    dbQueryObj.organizationId = req.passedData.organizationId;
+    dbQueryObj.organization = req.passedData.organization;
+
     if (req.query.limit !== undefined) {
         limit = req.query.limit;
     }
@@ -445,6 +448,8 @@ router.post('/queries', checkAuth, async (req, res) => {
 
     console.log(req.query.limit);
     console.log(req.query.next);
+
+    const entities = dbo.getEntitiesCollection();
 
     const cursor = entities.find(dbQueryObj).sort({_id: 1});
 

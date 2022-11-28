@@ -154,10 +154,10 @@ router.post('/', checkAuth, async (req, res) => {
 router.get('/', checkAuth, async (req, res) => {
     // Returns the specified collections belonging to the organization. 
 
-    if (req.query.limit === undefined) {
-        return res.status(400).json({
-            error: "Improper query string format. Must contain a limit"
-        });
+    let limit = 15;
+
+    if (req.query.limit !== undefined) {
+        limit = req.query.limit;
     }
 
     
@@ -197,11 +197,11 @@ router.get('/', checkAuth, async (req, res) => {
 
     if (next == 0) {
         return res.status(200).json({
-            entities: itemArray
+            collections: itemArray
         });
     } else {
         return res.status(200).json({
-            entities: itemArray,
+            collections: itemArray,
             next: next
         });
     }

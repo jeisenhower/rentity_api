@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateApiKey } from 'generate-api-key';
 import dbo from '../db/conn.js';
 import hash from '../encryption.js';
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 

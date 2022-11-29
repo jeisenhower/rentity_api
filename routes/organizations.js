@@ -332,6 +332,34 @@ router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (r
     }
 });
 
+// Gets information on a specific entity (will only return one entity, never an array)
+router.get('/:orgName/collections/:collectionName/entities/:entityId', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    }
+
+    const entities = dbo.getEntitiesCollection();
+    const entity = await entities.findOne({
+        entityId: req.params.entityId,
+        collection: req.params.collectionName,
+        organizationId: req.passedData.organizationId
+    });
+
+    if (entity == null) {
+        return res.status(401).json({
+            error: "No matching entity found within the organization. Access denied."
+        });
+    } else {
+        return res.status(200).json({
+            entity: entity
+        });
+    }
+
+
+});
+
 router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({

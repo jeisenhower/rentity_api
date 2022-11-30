@@ -51,12 +51,16 @@ const validateEmail = (email) => {
              });
          }
 
+         // TODO:
+         // NOTE: Can't use this here because not every route uses an organization name here. The orgName parameter isn't able to be parsed until
+         // later. However, if I set it up so that we route everything from index.js with an orgName parameter, then I could use that parameter in
+         // this function here. This will need to be done on v2.
          // Check that the organization name passed in the URL matches that of the profile corresponding to the API key sent in the headers
-         if (req.params.orgName !== organization) {
+         /*if (req.params.orgName !== organization) {
             return res.status(401).json({
                 error: "Provided API key does not have permission to access this organization."
             });
-        }
+        }*/
 
          //req.passedData = organization;
          req.passedData = {
@@ -201,15 +205,15 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
     }
 
     // Check that the orgName matches the organization corresponding to key or token provided.
-    /*if (req.params.orgName !== organization) {
+    if (req.params.orgName !== organization) {
         return res.status(401).json({
             error: "Provided API key does not have permission to access this organization."
         });
-    }*/
+    }
 
     if (req.body.name === undefined) {
         return res.status(400).json({
-            error: "Improper collection creation format"
+            error: "Improper collection creation format."
         });
     }
 
@@ -278,11 +282,11 @@ router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (r
     // All that is required in the body is the portion of the object that will be placed inside the data field. Thus, there is no need to 
     // label it as data. We can just put whatever we want in the body.
 
-    /*if (req.params.orgName !== req.passedData.organization) {
+    if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
             error: "Provided API key does not have permission to access this organization."
         });
-    } */
+    }
 
     // Query the collection with the organization name, ID, and the collection name
     const collections = dbo.getCollectionsCollection();
@@ -342,11 +346,11 @@ router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (r
 
 // Gets information on a specific entity (will only return one entity, never an array)
 router.get('/:orgName/collections/:collectionName/entities/:entityId', checkAuth, async (req, res) => {
-    /*if (req.params.orgName !== req.passedData.organization) {
+    if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
             error: "Provided API key does not have permission to access this organization."
         });
-    }*/
+    }
 
     const entities = dbo.getEntitiesCollection();
     const entity = await entities.findOne({
@@ -369,12 +373,11 @@ router.get('/:orgName/collections/:collectionName/entities/:entityId', checkAuth
 });
 
 router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
-    /*if (req.params.orgName !== req.passedData.organization) {
+    if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
             error: "Provided API key does not have permission to access this organization."
         });
-    } */
-    if (req.params.dateTimeLastUpdated === undefined) {
+    } else if (req.params.dateTimeLastUpdated === undefined) {
         return res.status(400).json({
             error: "Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds)."
         });
@@ -460,11 +463,11 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
 
 // Query the entities within a collection within an organization (advanced query)
 router.post('/:orgName/collections/:collectionName/entities/queries', checkAuth, async (req, res) => {
-    /*if (req.params.orgName !== req.passedData.organization) {
+    if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
             error: "Provided API key does not have permission to access this organization."
         });
-    }*/ 
+    }
 
     let limit = 15;
 

@@ -293,7 +293,7 @@ router.patch('/:orgName/collections/:collectionName/:dateTimeLastUpdated', check
         return res.status(400).json({
             error: "Unable to update the collection. Both collection anme and dateTime last updated must be provided (in milliseconds)."
         });
-    } else if (req.params.entityId === undefined) {
+    } else if (req.params.collectionName === undefined) {
         return res.status(400).json({
             error: "Unable to update collection. Both collection name and datetime last updated must be provided (in milliseconds)."
         });

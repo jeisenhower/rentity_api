@@ -253,6 +253,7 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
         creator: req.passedData.createdBy,
         organizationId: organizationId,
         organization: organization,
+        dateTimeLastUpdated: Date.now()
     };
 
     // One last thing to do is decide if we should include a schema key
@@ -280,6 +281,70 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
             error: "Could not store user account in the database. Please try again later."
         });
     }
+});
+
+// Update the collection (other than the schema)
+router.patch('/:orgName/collections/:collectionName/:dateTimeLastUpdated', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    } else if (req.params.dateTimeLastUpdated === undefined) {
+        return res.status(400).json({
+            error: "Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds)."
+        });
+    } else if (req.params.entityId === undefined) {
+        return res.status(400).json({
+            error: "Unable to update entity. Both entity ID and datetime last updated must be provided (in milliseconds)."
+        });
+    }
+
+    // Match the API key with the provided collection name. Find the collection specified here within the organization corresponding to the provided key
+    const queryObj = {
+        name: req.params.collectionName,
+        organizationId: req.passedData.organizationId,
+        organization: req.passedData.organization
+    };
+    const collections = dbo.getCollectionsCollection();
+    const collection = await collections.findOne(queryObj);
+
+    if (collection == null) {
+        return res.status(401).json({
+            error: "No matching collection found within the organization. Access denied."
+        });
+    }
+
+
+    // Check that dateTime last updated matches
+    if (parseInt(req.params.dateTimeLastUpdated) !== collection.dateTimeLastUpdated) {
+        return res.status(400).json({
+            error: "DateTime last updated does not match collection."
+        });
+    }
+
+    // Update the datetime last updated field to the current time
+    collection.dateTimeLastUpdated = Date.now();
+
+    // Update the collection description data only
+    for (let key in req.body) {
+        if (req.body.hasOwnProperty(key)) {
+            collection.description[key] = req.body[key];
+        }
+    }
+
+    const result = await collections.replaceOne(queryObj, collection);
+
+    if (!result.acknowledged || result.modifiedCount !== 1) {
+        return res.status({
+            error: "Could not update the collection due to server error. Please try again later."
+        });
+    }
+
+    return res.status(200).json({
+        result: result,
+        collection: collection
+    });
+
 });
 
 // Perform advanced query on collections resource

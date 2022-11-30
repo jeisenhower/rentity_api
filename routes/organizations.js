@@ -291,11 +291,11 @@ router.patch('/:orgName/collections/:collectionName/:dateTimeLastUpdated', check
         });
     } else if (req.params.dateTimeLastUpdated === undefined) {
         return res.status(400).json({
-            error: "Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds)."
+            error: "Unable to update the collection. Both collection anme and dateTime last updated must be provided (in milliseconds)."
         });
     } else if (req.params.entityId === undefined) {
         return res.status(400).json({
-            error: "Unable to update entity. Both entity ID and datetime last updated must be provided (in milliseconds)."
+            error: "Unable to update collection. Both collection name and datetime last updated must be provided (in milliseconds)."
         });
     }
 

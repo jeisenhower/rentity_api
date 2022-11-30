@@ -276,6 +276,12 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
     }
 });
 
+router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
+    return res.status(200).json({
+        message: "Works here"
+    });
+});
+
 
 // Create a new entity within a collection within an organization
 router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (req, res) => {

@@ -402,9 +402,54 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
     }
 });
 
+// Delete collection and all entities within the collection
+router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    }
+
+    const collectionQueryObj = {
+        organization: req.passedData.organization,
+        organizationId: req.passedData.organizationId,
+        name: req.params.collectionName
+    };
+
+    const entityQueryObj = {
+        organization: req.passedData.organization,
+        organizationId: req.passedData.organizationId,
+        collection: req.params.collectionName
+    };
+
+    // Delete the entities belonging to the collection.
+    const entities = dbo.getEntitiesCollection();
+    const resultA = await entities.deleteMany(entityQueryObj);
+    if (!resultA.acknowledged) {
+        return res.status(400).json({
+            error: "Could not delete entities belonging to the collection due to server error. Collection and entities remain undeleted."
+        });
+    }
+
+    // If entity deletion successful, delete the collection itself
+    const collections = dbo.getCollectionsCollection();
+    const resultB = await collections.deleteMany(collectionQueryObj);
+    if (!resultB.acknowledged) {
+        return res.status(400).json({
+            error: "Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself."
+        });
+    }
+
+    return res.status(200).json({
+        message: `${req.params.collectionName} collection and its entities successfully deleted.`
+    });
+
+
+});
+
 
 // Create a new entity within a collection within an organization
-router.post('/:orgName/collections/:collectionName/entities',checkAuth, async (req, res) => {
+router.post('/:orgName/collections/:collectionName/entities', checkAuth, async (req, res) => {
     // All that is required in the body is the portion of the object that will be placed inside the data field. Thus, there is no need to 
     // label it as data. We can just put whatever we want in the body.
 

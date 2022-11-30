@@ -260,6 +260,12 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
         collectionObj.schema = req.body.schema;
     }
 
+    // Allow the user to create an optional description field that can hold whatever data the user wants (most likely for common data among entities 
+    // within the collection). The goal is to help prevent entities from having redundant data in them if possible.
+    if (req.body.description !== undefined) {
+        collectionObj.description = req.body.description;
+    }
+
     const result = await collectionsCollection.insertOne(collectionObj);
 
     if (result.acknowledged) {

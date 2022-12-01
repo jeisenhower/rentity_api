@@ -209,7 +209,7 @@ router.get('/:orgName', checkAuth, async (req, res) => {
         fname: org.fname,
         lname: org.lname,
         email: org.email,
-        collections: org.collecions,
+        collections: org.collections,
         entities: org.entities
     }
 

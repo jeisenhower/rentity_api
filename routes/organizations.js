@@ -218,6 +218,44 @@ router.get('/:orgName', checkAuth, async (req, res) => {
     })
 });
 
+// Delete an organization account
+router.delete('/:orgName', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    }
+
+    // Find the organization and delete it. Also delete all collections and entities belonging to the organization
+    const collections = dbo.getCollectionsCollection();
+    const entities = dbo.getEntitiesCollection();
+    const orgs = dbo.getOrganizationsCollection();
+
+    // Delete all entities belonging to the organization
+    const entityResult = await entities.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
+    if (entityResult.deletedCount < 1) {
+        return res.status(400).json({
+            error: "Could not delete entities."
+        });
+    }
+    const collectionsResult = await collections.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
+    if (collectionsResult.deletedCount < 1) {
+        return res.status(400).json({
+            error: "Could not delete collections."
+        });
+    }
+    const orgResult = await orgs.deleteOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
+    if (collectionsResult.deletedCount < 1) {
+        return res.status(400).json({
+            error: "Could not delete collections."
+        });
+    }
+
+    return res.status(200).json({
+        message: "Your organization has been successfully deleted."
+    })
+});
+
 
 // <------------ Begin "experimental routes". We will see if these make for a better use experience than the non-hierarchical routes ------------->
 

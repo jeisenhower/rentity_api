@@ -823,7 +823,67 @@ router.post('/:orgName/collections/:collectionName/entities/queries', checkAuth,
 
 
 router.delete('/:orgName/collections/:collectionName/entities/:entityId', checkAuth, async (req, res) => {
+    // Delete the entity and update the entity count within the collection, as well as update the global entity count within the organization profile
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    } else if (req.params.entityId === undefined) {
+        return res.status(400).json({
+            error: "No entity ID provided."
+        });
+    } else if (req.params.collectionName === undefined) {
+        return res.status(400).json({
+            error: "No collection name provided."
+        });
+    }
+    
 
+    // Delete the entity
+    const entities = dbo.getEntitiesCollection();
+    const result = await entities.deleteOne({
+        entityId: req.params.entityId, 
+        collection: req.params.collectionName, 
+        organization: req.passedData.organization, 
+        organizationId: req.passedData.organizationId
+    });
+
+    if (!result.acknowledged) {
+        return res.status(400).json({
+            error: "Could not delete the specified entity."
+        });
+    }
+
+    // Update the collection to reflect the decremented entity count
+    const collections = dbo.getCollectionsCollection();
+    const resultB = await collections.updateOne({
+        name: req.params.collectionName, 
+        organization: req.passedData.organization,
+        organizationId: req.passedData.organizationId
+    }, {$inc: {numEntities: -1}});
+
+    if (resultB.modifiedCount !== 1) {
+        return res.status(400).json({
+            error: "Could not update collection to reflect the deleted entity."
+        });
+    }
+
+    // Update the user profile to reflect the decremented entity count
+    const orgs = dbo.getOrganizationsCollection();
+    const resultC = await orgs.updateOne({
+        organization: req.passedData.organization,
+        organizationId: req.passedData.organizationId
+    }, {$inc: {entities: -1}});
+
+    if (resultC.modifiedCount !== 1) {
+        return res.status(400).json({
+            error: "Could not update the organization profile to reflect the deleted entity."
+        });
+    }
+
+    return res.status(200).json({
+        message: "Entity successfully deleted."
+    });
 });
 
 

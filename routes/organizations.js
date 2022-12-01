@@ -520,7 +520,7 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
     const collections = dbo.getCollectionsCollection();
     // Get the collection in order to keep track of how many entities we will be deleting (for tracking on the user profile)
     const col = collections.findOne(collectionQueryObj);
-    let entitiesToDeleteCount = col.entitiesCount;
+    let entitiesToDeleteCount = col.numEntities;
     if (entitiesToDeleteCount == null) {
         entitiesToDeleteCount = 0;
     }
@@ -537,7 +537,6 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
     const resultC = await orgs.updateOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId}, {
         $inc: {collections: -1, entities: parseInt(`-${entitiesToDeleteCount}`)}
     });
-
     if (resultC.modifiedCount !== 1) {
         return res.status(400).json({
             error: "Could not update organization collection and entity count after deleting the collection. Please request help and file a bug report."

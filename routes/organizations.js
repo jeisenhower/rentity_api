@@ -519,7 +519,7 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
     // If entity deletion successful, delete the collection itself
     const collections = dbo.getCollectionsCollection();
     // Get the collection in order to keep track of how many entities we will be deleting (for tracking on the user profile)
-    const col = collections.findOne(collectionQueryObj);
+    const col = await collections.findOne(collectionQueryObj);
     let entitiesToDeleteCount = parseInt(col.numEntities);
     if (entitiesToDeleteCount == null) {
         entitiesToDeleteCount = 0;

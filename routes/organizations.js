@@ -180,7 +180,7 @@ router.post('/', async (req, res) => {
             fname: req.body.fname,
             lname: req.body.lname,
             email: req.body.email,
-            collection: 0,
+            collections: 0,
             entities: 0,
         }
     });
@@ -210,6 +210,7 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
             error: "Provided API key does not have permission to access this organization."
         });
     }
+
 
     if (req.body.name === undefined) {
         return res.status(400).json({
@@ -253,7 +254,8 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
         creator: req.passedData.createdBy,
         organizationId: organizationId,
         organization: organization,
-        dateTimeLastUpdated: Date.now()
+        dateTimeLastUpdated: Date.now(),
+        numEntities: 0
     };
 
     // One last thing to do is decide if we should include a schema key
@@ -269,18 +271,33 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
 
     const result = await collectionsCollection.insertOne(collectionObj);
 
-    if (result.acknowledged) {
-        return res.status(201).json({
-            name: name,
-            collectionId: collectionId,
-            creator: req.passedData.organizationId,
-
-        });
-    } else {
+    if (!result.acknowledged) {
         return res.status(400).json({
             error: "Could not store user account in the database. Please try again later."
         });
     }
+
+    // Query and update the organization collection count
+    const org = dbo.getOrganizationsCollection();
+    const updateOrg = await org.updateOne({organizationId: req.passedData.organizationId, organization: req.passedData.organization}, {$inc: {collections: 1}});
+    if (updateOrg.matchedCount !== 1 || updateOrg.modifiedCount !== 1) {
+        // Delete the created collection and return an error
+        const deleteResult = await collectionsCollection.deleteOne({collectionId: collectionId, name: name});
+        if (deleteResult.deletedCount !== 1) {
+            console.log('System error: Could not delete the collection. Best solution is to increment the organization collection count by 1.');
+        }
+        return res.status(400).json({
+            error: "Could not update organization collection count."
+        });
+    }
+
+
+    return res.status(201).json({
+        name: name,
+        collectionId: collectionId,
+        creator: req.passedData.organizationId,
+
+    });
 });
 
 // Update the collection (other than the schema)

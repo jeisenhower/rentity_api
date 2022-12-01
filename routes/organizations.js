@@ -284,6 +284,7 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
 });
 
 // Update the collection (other than the schema)
+// TODO: Need to figure out how to handle when a user wants to delete a field from the description in the collection
 router.patch('/:orgName/collections/:collectionName/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({

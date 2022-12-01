@@ -537,7 +537,7 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
 
     const orgs = dbo.getOrganizationsCollection();
     const resultC = await orgs.updateOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId}, {
-        $inc: {collections: -1, entities: (entitiesToDeleteCount * -1)}
+        $inc: {collections: -1, entities: entitiesToDeleteCount}
     });
     if (resultC.modifiedCount !== 1) {
         return res.status(400).json({

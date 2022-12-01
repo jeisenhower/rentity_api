@@ -526,6 +526,7 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
     }
 
     entitiesToDeleteCount = entitiesToDeleteCount * -1;
+    console.log(`Entities To Delete: ${entitiesToDeleteCount}`);
 
 
     const resultB = await collections.deleteOne(collectionQueryObj);

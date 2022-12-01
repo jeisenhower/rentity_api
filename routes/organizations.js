@@ -187,8 +187,35 @@ router.post('/', async (req, res) => {
     
 });
 
-router.get('/', checkAuth, (req, res) => {
+router.get('/:orgName', checkAuth, async (req, res) => {
     // Returns the public data on an organization
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    }
+
+    const orgs = dbo.getOrganizationsCollection();
+    const org = await orgs.findOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
+    if (org == null) {
+        return res.status(404).json({
+            error: "No organization found."
+        });
+    }
+    
+    const obj = {
+        organization: org.organization,
+        organizationId: org.organizationId,
+        fname: org.fname,
+        lname: org.lname,
+        email: org.email,
+        collections: org.collecions,
+        entities: org.entities
+    }
+
+    return res.status(200).json({
+        profile: obj
+    })
 });
 
 

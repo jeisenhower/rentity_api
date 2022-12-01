@@ -233,19 +233,19 @@ router.delete('/:orgName', checkAuth, async (req, res) => {
 
     // Delete all entities belonging to the organization
     const entityResult = await entities.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (entityResult.deletedCount < 1) {
+    if (!entityResult.acknowledged) {
         return res.status(400).json({
             error: "Could not delete entities."
         });
     }
     const collectionsResult = await collections.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (collectionsResult.deletedCount < 1) {
+    if (!collectionsResult.acknowledged) {
         return res.status(400).json({
             error: "Could not delete collections."
         });
     }
     const orgResult = await orgs.deleteOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (collectionsResult.deletedCount < 1) {
+    if (!collectionsResult.acknowledged) {
         return res.status(400).json({
             error: "Could not delete collections."
         });

@@ -311,7 +311,9 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
         // Delete the created collection and return an error
         const deleteResult = await collectionsCollection.deleteOne({collectionId: collectionId, name: name});
         if (deleteResult.deletedCount !== 1) {
-            console.log('System error: Could not delete the collection. Best solution is to increment the organization collection count by 1.');
+            return res.status(400).json({
+                error: "System error: Could not delete the collection. Best solution is to contact customer support to manually increment the organization collection count."
+            })
         }
         return res.status(400).json({
             error: "Could not update organization collection count."
@@ -478,13 +480,29 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
 
     // If entity deletion successful, delete the collection itself
     const collections = dbo.getCollectionsCollection();
-    const resultB = await collections.deleteMany(collectionQueryObj);
-    if (!resultB.acknowledged) {
+    // Get the collection in order to keep track of how many entities we will be deleting (for tracking on the user profile)
+    const col = collections.findOne(collectionQueryObj);
+    const entitiesToDeleteCount = col.entitiesCount;
+
+
+    const resultB = await collections.deleteOne(collectionQueryObj);
+    if (resultB.deletedCount !== 1) {
         return res.status(400).json({
             error: "Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself."
         });
     }
 
+    const orgs = dbo.getOrganizationsCollection();
+    const resultC = await orgs.updateOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId}, {
+        $inc: {collections: -1, entities: (entitiesToDeleteCount*-1)}
+    });
+
+    if (resultC.modifiedCount !== 1) {
+        return res.status(400).json({
+            error: "Could not update organization collection and entity count after deleting the collection. Please request help and file a bug report."
+        });
+    }
+    
     return res.status(200).json({
         message: `${req.params.collectionName} collection and its entities successfully deleted.`
     });
@@ -506,10 +524,11 @@ router.post('/:orgName/collections/:collectionName/entities', checkAuth, async (
 
     // Query the collection with the organization name, ID, and the collection name
     const collections = dbo.getCollectionsCollection();
-    const collection = await collections.findOne({
+    const collectionQuery = {
         name: req.params.collectionName, organizationId: req.passedData.organizationId,
         organization: req.passedData.organization
-    });
+    };
+    const collection = await collections.findOne(collectionQuery);
 
     if (collection == null) {
         return res.status(401).json({
@@ -548,16 +567,35 @@ router.post('/:orgName/collections/:collectionName/entities', checkAuth, async (
     const dbCollection = dbo.getEntitiesCollection();
     const result = await dbCollection.insertOne(entityObj);
 
-    if (result.acknowledged) {
-        // Return the result of the insert to the user
-        return res.status(201).json({
-            entity: entityObj
-        });
-    } else {
+    if (!result.acknowledged) {
         return res.status(400).json({
             error: "Could not store user account in the database. Please try again later."
         });
+        
+    } 
+
+    // Increment the entity count in the organization and the collection
+    const resultB = await collections.updateOne(collectionQuery, {$inc: {numEntities: 1}});
+    if (resultB.modifiedCount !== 1) {
+        return res.status(400).json({
+            error: "Could not modify the collection's entity count. Please contact customer service to have the count manually incremented."
+        })
     }
+
+    const orgs = dbo.getOrganizationsCollection();
+    const resultC = await orgs.updateOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId}, {$inc: {entities: 1}});
+    if (resultC.modifiedCount !== 1) {
+        return res.status(400).json({
+            error: "Could not update entity count in the organization profile. Please contact customer service to resolve the issue."
+        })
+    }
+
+    // Return the result of the insert to the user
+    return res.status(201).json({
+        entity: entityObj
+    });
+
+
 });
 
 // Gets information on a specific entity (will only return one entity, never an array)
@@ -738,6 +776,11 @@ router.post('/:orgName/collections/:collectionName/entities/queries', checkAuth,
         });
     }
 
+});
+
+
+router.delete('/:orgName/collections/:collectionName/entities/:entityId', checkAuth, async (req, res) => {
+    
 });
 
 

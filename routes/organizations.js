@@ -210,7 +210,7 @@ router.post('/', async (req, res) => {
 
 
     // Send response to user
-    return res.status(201).setHeader('x-api-key', apiKey).json({
+    return res.status(201).setHeader('x-api-key', newKey).json({
         organizationId: publicId,
         organization: org,
         fname: req.body.fname,

@@ -17,7 +17,7 @@ const validateEmail = (email) => {
 };
 
 
-/*async function checkAuth(req, res, next) {
+async function checkAuth(req, res, next) {
     // Get the api key and look up the corresponding account with it. Whatever user, if any, it corresponds to, pass the user's account info along by creating
     // a new organization object within the req object
     // If user is using api key, pass along the user profile in the passed data object added to the req object. If using access tokens, get the data from the
@@ -67,9 +67,9 @@ const validateEmail = (email) => {
         });
     }
 
-}*/
+}
 
-async function checkAuth(req, res, next) {
+/*async function checkAuth(req, res, next) {
     if (req.headers['x-api-key'] !== undefined) {
         
 
@@ -114,7 +114,7 @@ async function checkAuth(req, res, next) {
         });
     }
 
-}
+}*/
 
 
 // Creates a user and generates an API key for that user. The user can then use that API key to create collections and entities. They will have to create a 

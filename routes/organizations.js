@@ -498,6 +498,35 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
     }
 });
 
+// Get a specific collection
+router.get('/:orgName/collections/:collectionName', checkAuth, async (req, res) => {
+    if (req.params.orgName !== req.passedData.organization) {
+        return res.status(401).json({
+            error: "Provided API key does not have permission to access this organization."
+        });
+    } else if (req.params.collectionName === undefined) {
+        return res.status(400).json({
+            error: "Missing collection name from URL."
+        });
+    }
+
+    // Query the collection name within the organization
+    const collections = dbo.getCollectionsCollection();
+    const collection = await collections.findOne({
+        organization: req.passedData.organization, 
+        organizationId: req.passedData.organizationId,
+        name: req.params.collectionName
+    });
+
+    if (collection == null) {
+        return res.status(404).json({
+            error: "No collection matching this collection name found within the organization."
+        });
+    }
+
+    return res.status(200).json(collection);
+});
+
 // Delete collection and all entities within the collection
 router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {

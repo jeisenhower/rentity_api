@@ -90,6 +90,11 @@ const validateEmail = (email) => {
 // creation of collections and entities, and interacting with those entities in any way. The public ID will also have to be encrypted with a different encryption
 // key and placed in the headers as well (maybe this is overkill?). 
 
+// NOTE: Came up with a better idea than actively keeping track of number of entities and number of collections. Whenever we get user profile information, just run
+// a query to find total number of entities and total number of collections belonging to the organization, then return that with the rest of the profile info.
+// On queries involving collections, return the number of entities by doing a query on the number of entities belonging to the collection and adding it to the 
+// return data.
+
 router.post('/', async (req, res) => {
     // Create a new organization
     if (!req.body.fname || !req.body.lname || !req.body.email || !req.body.organization) {
@@ -154,8 +159,6 @@ router.post('/', async (req, res) => {
         email: req.body.email,
         key: encryptedAPIKey,
         keyExpiration: Date.now() + (1000*60*60*24*365),
-        collections: 0,
-        entities: 0,
         verified: true,
         loggedIn: true
     };
@@ -174,15 +177,13 @@ router.post('/', async (req, res) => {
 
     // Send response to user
     return res.status(201).setHeader('x-api-key', apiKey).json({
-        account: {
-            organizationId: publicId,
-            organization: org,
-            fname: req.body.fname,
-            lname: req.body.lname,
-            email: req.body.email,
-            collections: 0,
-            entities: 0,
-        }
+        organizationId: publicId,
+        organization: org,
+        fname: req.body.fname,
+        lname: req.body.lname,
+        email: req.body.email,
+        collections: 0,
+        entities: 0,
     });
     
 });
@@ -202,6 +203,12 @@ router.get('/:orgName', checkAuth, async (req, res) => {
             error: "No organization found."
         });
     }
+
+    const collections = dbo.getCollectionsCollection();
+    const collectionsCount = await collections.countDocuments({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
+
+    const entities = dbo.getEntitiesCollection();
+    const entitiesCount = await entities.countDocuments({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
     
     const obj = {
         organization: org.organization,
@@ -209,8 +216,8 @@ router.get('/:orgName', checkAuth, async (req, res) => {
         fname: org.fname,
         lname: org.lname,
         email: org.email,
-        collections: org.collections,
-        entities: org.entities
+        collections: collectionsCount,
+        entities: entitiesCount
     }
 
     return res.status(200).json({
@@ -234,7 +241,7 @@ router.delete('/:orgName', checkAuth, async (req, res) => {
     // Delete all entities belonging to the organization
     const entityResult = await entities.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
     if (!entityResult.acknowledged) {
-        return res.status(400).json({
+        return res.status(404).json({
             error: "Could not delete entities."
         });
     }
@@ -307,20 +314,13 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
     // isPublic is used for access by other users. I may not use this and just use tokens specified to access certain collections and what permissions they
     // have to access those collections.
 
-    let isPublic = false;
-    if (req.body.isPublic !== undefined && typeof req.body.isPublic == "boolean") {
-        isPublic = req.body.isPublic;
-    }
-
-    const collectionObj = {
+    let collectionObj = {
         name: name,
-        isPublic: isPublic,
         collectionId: collectionId,
         creator: req.passedData.createdBy,
         organizationId: organizationId,
         organization: organization,
         dateTimeLastUpdated: Date.now(),
-        numEntities: 0
     };
 
     // One last thing to do is decide if we should include a schema key
@@ -337,34 +337,16 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
     const result = await collectionsCollection.insertOne(collectionObj);
 
     if (!result.acknowledged) {
-        return res.status(400).json({
+        return res.status(500).json({
             error: "Could not store user account in the database. Please try again later."
         });
     }
 
-    // Query and update the organization collection count
-    const org = dbo.getOrganizationsCollection();
-    const updateOrg = await org.updateOne({organizationId: req.passedData.organizationId, organization: req.passedData.organization}, {$inc: {collections: 1}});
-    if (updateOrg.matchedCount !== 1 || updateOrg.modifiedCount !== 1) {
-        // Delete the created collection and return an error
-        const deleteResult = await collectionsCollection.deleteOne({collectionId: collectionId, name: name});
-        if (deleteResult.deletedCount !== 1) {
-            return res.status(400).json({
-                error: "System error: Could not delete the collection. Best solution is to contact customer support to manually increment the organization collection count."
-            })
-        }
-        return res.status(400).json({
-            error: "Could not update organization collection count."
-        });
-    }
+    // Add the entity count to the return object
+    collectionObj.numEntities = 0;
 
 
-    return res.status(201).json({
-        name: name,
-        collectionId: collectionId,
-        creator: req.passedData.organizationId,
-
-    });
+    return res.status(201).json(collectionObj);
 });
 
 // Update the collection (other than the schema)
@@ -402,7 +384,7 @@ router.patch('/:orgName/collections/:collectionName/:dateTimeLastUpdated', check
 
     // Check that dateTime last updated matches
     if (parseInt(req.params.dateTimeLastUpdated) !== collection.dateTimeLastUpdated) {
-        return res.status(400).json({
+        return res.status(403).json({
             error: "DateTime last updated does not match collection."
         });
     }
@@ -458,11 +440,23 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
     const collections = dbo.getCollectionsCollection();
     const cursor = collections.find(dbQueryObj);
 
+    const entities = dbo.getEntitiesCollection();
+
     let i = 0;
     let itemArray = [];
     let next = 0;
-    await cursor.forEach(doc => {
+
+    // Attempted to count number of entities in each collection on the fly in the code below. Not sure if it will work in practice or not
+    await cursor.forEach(async doc  => {
         if (i < limit) {
+            // Query the number of entities belonging to the collection
+            const entityCount = await entities.countDocuments({
+                collection: doc.name, 
+                collectionId: doc.collectionId, 
+                organization: req.passedData.organization, 
+                organizationId: req.passedData.organizationId
+            });
+            doc.numEntities = entityCount;
             itemArray.push(doc);
         } 
         
@@ -511,45 +505,23 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
     const entities = dbo.getEntitiesCollection();
     const resultA = await entities.deleteMany(entityQueryObj);
     if (!resultA.acknowledged) {
-        return res.status(400).json({
+        return res.status(500).json({
             error: "Could not delete entities belonging to the collection due to server error. Collection and entities remain undeleted."
         });
     }
 
     // If entity deletion successful, delete the collection itself
     const collections = dbo.getCollectionsCollection();
-    // Get the collection in order to keep track of how many entities we will be deleting (for tracking on the user profile)
-    const col = await collections.findOne(collectionQueryObj);
-    let entitiesToDeleteCount = parseInt(col.numEntities);
-    if (entitiesToDeleteCount == null) {
-        entitiesToDeleteCount = 0;
-    }
-
-    entitiesToDeleteCount = entitiesToDeleteCount * -1;
-    console.log(`Entities To Delete: ${entitiesToDeleteCount}`);
-
-
     const resultB = await collections.deleteOne(collectionQueryObj);
     if (resultB.deletedCount !== 1) {
-        return res.status(400).json({
+        return res.status(500).json({
             error: "Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself."
-        });
-    }
-
-    const orgs = dbo.getOrganizationsCollection();
-    const resultC = await orgs.updateOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId}, {
-        $inc: {collections: -1, entities: entitiesToDeleteCount}
-    });
-    if (resultC.modifiedCount !== 1) {
-        return res.status(400).json({
-            error: "Could not update organization collection and entity count after deleting the collection. Please request help and file a bug report."
         });
     }
     
     return res.status(200).json({
         message: `${req.params.collectionName} collection and its entities successfully deleted.`
     });
-
 
 });
 
@@ -611,33 +583,14 @@ router.post('/:orgName/collections/:collectionName/entities', checkAuth, async (
     const result = await dbCollection.insertOne(entityObj);
 
     if (!result.acknowledged) {
-        return res.status(400).json({
-            error: "Could not store user account in the database. Please try again later."
+        return res.status(500).json({
+            error: "Could not persist new entity to the database. Please try again later."
         });
         
     } 
 
-    // Increment the entity count in the organization and the collection
-    const resultB = await collections.updateOne(collectionQuery, {$inc: {numEntities: 1}});
-    if (resultB.modifiedCount !== 1) {
-        return res.status(400).json({
-            error: "Could not modify the collection's entity count. Please contact customer service to have the count manually incremented."
-        })
-    }
-
-    const orgs = dbo.getOrganizationsCollection();
-    const resultC = await orgs.updateOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId}, {$inc: {entities: 1}});
-    if (resultC.modifiedCount !== 1) {
-        return res.status(400).json({
-            error: "Could not update entity count in the organization profile. Please contact customer service to resolve the issue."
-        })
-    }
-
     // Return the result of the insert to the user
-    return res.status(201).json({
-        entity: entityObj
-    });
-
+    return res.status(201).json(entityObj);
 
 });
 
@@ -693,7 +646,7 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
     });
 
     if (entity == null) {
-        return res.status(401).json({
+        return res.status(404).json({
             error: "No matching entity found within the organization. Access denied."
         });
     }
@@ -701,7 +654,7 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
 
     // Check that dateTime last updated matches
     if (parseInt(req.params.dateTimeLastUpdated) !== entity.dateTimeLastUpdated) {
-        return res.status(400).json({
+        return res.status(403).json({
             error: "DateTime last updated does not match entity."
         });
     }
@@ -751,10 +704,7 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
         });
     }
 
-    return res.status(200).json({
-        result: result,
-        entity: entity
-    });
+    return res.status(200).json(entity);
 });
 
 
@@ -849,35 +799,8 @@ router.delete('/:orgName/collections/:collectionName/entities/:entityId', checkA
     });
 
     if (!result.acknowledged) {
-        return res.status(400).json({
+        return res.status(500).json({
             error: "Could not delete the specified entity."
-        });
-    }
-
-    // Update the collection to reflect the decremented entity count
-    const collections = dbo.getCollectionsCollection();
-    const resultB = await collections.updateOne({
-        name: req.params.collectionName, 
-        organization: req.passedData.organization,
-        organizationId: req.passedData.organizationId
-    }, {$inc: {numEntities: -1}});
-
-    if (resultB.modifiedCount !== 1) {
-        return res.status(400).json({
-            error: "Could not update collection to reflect the deleted entity."
-        });
-    }
-
-    // Update the user profile to reflect the decremented entity count
-    const orgs = dbo.getOrganizationsCollection();
-    const resultC = await orgs.updateOne({
-        organization: req.passedData.organization,
-        organizationId: req.passedData.organizationId
-    }, {$inc: {entities: -1}});
-
-    if (resultC.modifiedCount !== 1) {
-        return res.status(400).json({
-            error: "Could not update the organization profile to reflect the deleted entity."
         });
     }
 

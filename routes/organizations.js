@@ -76,7 +76,6 @@ async function checkAuth(req, res, next) {
     // access token and pass it in the passed data object, as well as set a req.method variable as appropriate (either key or token).
     if (req.headers['x-api-key'] !== undefined) {
         // Look up the organization and see if the key matches the organization
-        const organizations = dbo.getOrganizationsCollection();
         /*let organization = null;
         if (req.headers['organizationid'] !== undefined) {
             organization = await organizations.findOne({ organizationId: req.headers['organizationid'] });
@@ -95,6 +94,9 @@ async function checkAuth(req, res, next) {
 
         // Encrypt the api key and search for the matching api key in the database
         let encryptedAPIKey = hash.encrypt(req.headers['x-api-key']);
+        console.log(`Encrypted API key: ${encryptedAPIKey}`);
+
+        const organizations = dbo.getOrganizationsCollection();
         let organization = await organizations.findOne({apiKey: encryptedAPIKey});
 
         if (organization == null) {
@@ -146,7 +148,7 @@ async function checkAuth(req, res, next) {
 
 router.post('/', async (req, res) => {
     // Create a new organization
-    if (!req.body.fname || !req.body.lname || !req.body.email || !req.body.organization) {
+    if (!req.body.fname || !req.body.lname || !req.body.email || !req.body.organization || !req.headers['password']) {
         return res.status(400).json({
             error: "Improper user creation format"
         });
@@ -186,14 +188,14 @@ router.post('/', async (req, res) => {
     const publicId = uuidv4();
 
     // Generate and store encrypted password based on input password in the headers
-    const encrypted = hash.encrypt(req.body.password);
+    const encryptedPass = hash.encrypt(req.headers['password']);
 
     // Generate an API key/refresh token for the user
-    const apiKey = generateApiKey({method: 'base32'});
+    const newKey = generateApiKey({method: 'base32'});
 
     // Encrypt the API key
     // Use the same iv value that the password was hashed with
-    const encryptedAPIKey = hash.encrypt(apiKey);
+    const encryptedAPIKey = hash.encrypt(newKey);
 
     // NOTE: The key expiration date is a year from the day of creation of the account. This will not be needed in this iteration, but
     // it may be nice to have in the future to enforce renewal of API keys for better security.
@@ -204,7 +206,7 @@ router.post('/', async (req, res) => {
         organization: org,
         fname: req.body.fname,
         lname: req.body.lname,
-        password: encrypted.encryptedContent,
+        password: encryptedPass,
         email: req.body.email,
         apiKey: encryptedAPIKey,
         keyExpiration: Date.now() + (1000*60*60*24*365),

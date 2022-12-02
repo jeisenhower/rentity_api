@@ -1,674 +1,891 @@
 const swagger = {
-    "swagger": "2.0",
-    "info": {
-      "version": "1.0.0",
-      "title": "REST API",
-      "description": ""
-    },
-    "host": "localhost:3000",
-    "basePath": "/",
-    "schemes": [
-      "http"
-    ],
-    "paths": {
-      "/": {
-        "post": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "collection": {
-                    "example": "any"
-                  },
-                  "collectionId": {
-                    "example": "any"
-                  },
-                  "data": {
-                    "example": "any"
-                  }
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Rentity",
+    "description": "Create entities and rent them out to your users in any way you like."
+  },
+  "paths": {
+    "/organizations": {
+      "post": {
+        "summary": "Create a new organization",
+        "responses": {
+          "201": {
+            "description": "New organization has been created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
                 }
               }
             }
-          ],
-          "responses": {
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
+          },
+          "400": {
+            "description": "Duplicate organization. Organization needs unique organization name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get organization profile information",
+        "responses": {
+          "200": {
+            "description": "The organization corresponding to the provided unique `organizationName`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Provided API key does not authorize access to requested profile data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No organization found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete the organization and all collections and entities associated with it",
+        "responses": {
+          "200": {
+            "description": "The organization and all associated collection and entities were deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Could not delete all entities, collections, and organization data due to server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key not authorized to access the organization data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Could not find organization to delete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Create a new collection belonging to an organization",
+        "responses": {
+          "201": {
+            "description": "New collection successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Duplicate collection name. All collections within an organization must be unique",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Could not create collection due to internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections/queries": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Run an advanced query with the request body contents on the collections endpoint within an organization",
+        "responses": {
+          "200": {
+            "description": "Successful query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionArray"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections/{collectionName}": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
           }
         },
-        "get": {
-          "description": "",
-          "parameters": [],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "401": {
-              "description": "Unauthorized"
-            }
+        {
+          "name": "collectionName",
+          "description": "Name of the collection belonging to the organization",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CollectionName"
           }
         }
-      },
-      "/{orgName}/collections": {
-        "post": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "example": "any"
-                  },
-                  "isPublic": {
-                    "example": "any"
-                  },
-                  "schema": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+      ],
+      "get": {
+        "summary": "Read a collection",
+        "responses": {
+          "200": {
+            "description": "The specified collection was successfully read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
                 }
               }
             }
-          ],
-          "responses": {
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            }
-          }
-        }
-      },
-      "/{orgName}/collections/{collectionName}/{dateTimeLastUpdated}": {
-        "patch": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "collectionName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "dateTimeLastUpdated",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "keykey": {
-                    "example": "any"
-                  },
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+          },
+          "400": {
+            "description": "Improper URL format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            }
-          }
-        }
-      },
-      "/{orgName}/collections/queries": {
-        "post": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "limit",
-              "in": "query",
-              "type": "string"
-            },
-            {
-              "name": "next",
-              "in": "query",
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "organization": {
-                    "example": "any"
-                  },
-                  "organizationId": {
-                    "example": "any"
-                  },
-                  "_id": {
-                    "example": "any"
-                  },
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            }
-          }
-        }
-      },
-      "/{orgName}/collections/{collectionName}": {
-        "delete": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "collectionName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+          },
+          "404": {
+            "description": "No collection found matching the URL collection name within the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            }
           }
         }
       },
-      "/{orgName}/collections/{collectionName}/entities": {
-        "post": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "collectionName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "data": {
-                    "example": "any"
-                  },
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+      "delete": {
+        "summary": "Delete a collection and all entities associated with that collection",
+        "responses": {
+          "200": {
+            "description": "The collection and all its entities were successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
                 }
               }
             }
-          ],
-          "responses": {
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            }
-          }
-        }
-      },
-      "/{orgName}/collections/{collectionName}/entities/{entityId}": {
-        "get": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "collectionName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "entityId",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            }
-          }
-        }
-      },
-      "/{orgName}/collections/{collectionName}/entities/{entityId}/{dateTimeLastUpdated}": {
-        "patch": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "collectionName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "entityId",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "dateTimeLastUpdated",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "keykey": {
-                    "example": "any"
-                  },
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
-            },
-            "404": {
-              "description": "Not Found"
+          },
+          "500": {
+            "description": "Collection could not be fully deleted due to server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections/{collectionName}/{dateTimeLastUpdated}": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        },
+        {
+          "name": "collectionName",
+          "description": "Name of the collection belonging to the organization",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CollectionName"
+          }
+        }, 
+        {
+          "name": "dateTimeLastUpdated",
+          "description": "The datetime in milliseconds that the collection was last updated",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DateTimeLastUpdated"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Update the description field of a collection. No other fields in the collection are allowed to be modified at will by users.",
+        "responses": {
+          "200": {
+            "description": "The specified collection was successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Improper URL format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Datetime last updated of the collection does not match that of the URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections/{collectionName}/entities": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        },
+        {
+          "name": "collectionName",
+          "description": "Name of the collection belonging to the organization",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CollectionName"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Create a new entity within a collection belonging to an organization",
+        "responses": {
+          "201": {
+            "description": "The entity was successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The entity does not match the specified collection schema format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Could not successfully create entity due to server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections/{collectionName}/entities/queries": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        },
+        {
+          "name": "collectionName",
+          "description": "Name of the collection belonging to the organization",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CollectionName"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Run an advanced query using the request body as query paramters to get matching entities from a collection",
+        "responses": {
+          "200": {
+            "description": "The query ran successfully and any matching entities are returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityArray"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    "/organizations/{organizationName}/collections/{collectionName}/entities/{entityId}": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        },
+        {
+          "name": "collectionName",
+          "description": "Name of the collection belonging to the organization",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CollectionName"
+          }
+        },
+        {
+          "name": "entityId",
+          "description": "The unique identifier of the entity the user is trying to access within the collection",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/EntityId"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Read an entity",
+        "responses": {
+          "200": {
+            "description": "Successfully found and returned the specified entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
       },
-      "/{orgName}/collections/{collectionName}/entities/queries": {
-        "post": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "orgName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "collectionName",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "limit",
-              "in": "query",
-              "type": "string"
-            },
-            {
-              "name": "next",
-              "in": "query",
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "organizationId": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "collection": {
-                    "example": "any"
-                  },
-                  "_id": {
-                    "example": "any"
-                  },
-                  "fname": {
-                    "example": "any"
-                  },
-                  "lname": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "password": {
-                    "example": "any"
-                  }
+      "patch": {
+        "summary": "Update an entity. Only the data field of the entity can be updated by the user",
+        "responses": {
+          "200": {
+            "description": "The entity was successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "201": {
-              "description": "Created"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "403": {
-              "description": "Forbidden"
+          },
+          "400": {
+            "description": "Improper URL format or changes do not match the collection schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Datetime last updated of the entity does not match that of the URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No entity found within the organization collection matching the specified entity ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
       },
-      "/{entityId}/{dateTimeLastUpdated}": {
-        "patch": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "entityId",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "dateTimeLastUpdated",
-              "in": "path",
-              "required": true,
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "keykey": {
-                    "example": "any"
-                  }
+      "delete": {
+        "summary": "Delete an entity from a collection",
+        "responses": {
+          "200": {
+            "description": "Successfully deleted the specified entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "400": {
-              "description": "Bad Request"
-            },
-            "401": {
-              "description": "Unauthorized"
-            },
-            "404": {
-              "description": "Not Found"
-            }
-          }
-        }
-      },
-      "/queries": {
-        "post": {
-          "description": "",
-          "parameters": [
-            {
-              "name": "limit",
-              "in": "query",
-              "type": "string"
-            },
-            {
-              "name": "next",
-              "in": "query",
-              "type": "string"
-            },
-            {
-              "name": "body",
-              "in": "body",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "organizationId": {
-                    "example": "any"
-                  },
-                  "organization": {
-                    "example": "any"
-                  },
-                  "_id": {
-                    "example": "any"
-                  }
+          },
+          "400": {
+            "description": "Improper URL format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK"
-            },
-            "401": {
-              "description": "Unauthorized"
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Could not find entity to be deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Could not fully delete entity due to internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
       }
     }
-  }
+  },
+  "components": {
+    "schemas": {
+      "OrganizationName": {
+        "type": "string",
+        "description": "The unique organization name identifier"
+      },
+      "Organization": {
+        "type": "object",
+        "required": [
+          "organizationId",
+          "organization",
+          "fname",
+          "lname",
+          "email",
+          "collections",
+          "entities"
+        ],
+        "properties": {
+          "organizationId": {
+            "description": "UUID belonging to the organization",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Unique name of the organization",
+            "type": "string"
+          },
+          "fname": {
+            "description": "First name of the organization creator",
+            "type": "string"
+          },
+          "lname": {
+            "description": "Last name of the organization creator",
+            "type": "string"
+          },
+          "email": {
+            "description": "Email of the organization creator",
+            "type": "string"
+          },
+          "collections": {
+            "description": "Number of collections currently existing in the organization",
+            "type": "integer"
+          },
+          "entities": {
+            "description": "Total number of entities currently existing in the organization.",
+            "type": "integer"
+          }
+        }
+      },
+      "CollectionName": {
+        "type": "string",
+        "description": "The name of the collection, unique to the organization"
+      },
+      "Collection": {
+        "type": "object",
+        "required": [
+          "name",
+          "collectionId",
+          "creator",
+          "organization",
+          "organizationId",
+          "dateTimeLastUpdated",
+          "numEntities"
+        ],
+        "properties": {
+          "name": {
+            "description": "The unique name of the new collection",
+            "type": "string"
+          },
+          "collectionId": {
+            "description": "The UUID of the new collection",
+            "type": "string"
+          },
+          "creator": {
+            "description": "The organization ID of the organization who created the collection",
+            "type": "string"
+          },
+          "organization": {
+            "description": "The name of the organization to which the collection belongs",
+            "type": "string"
+          },
+          "organizationId": {
+            "description": "The organization UUID of the organization to which the collection belongs",
+            "type": "string"
+          },
+          "dateTimeLastUpdated": {
+            "description": "The datetime in milliseconds which the collection was last updated",
+            "type": "integer"
+          },
+          "numEntities": {
+            "description": "The current number of entities within the collection",
+            "type": "string"
+          },
+          "description": {
+            "description": "An optional, potentially nested object that includes any common data among all entities within the collection",
+            "type": "object"
+          },
+          "schema": {
+            "description": "An optional nested object that outlines the schema of all entities created within the collection",
+            "type": "object"
+          }
+        }
+      },
+      "CollectionArray": {
+        "description": "An array of Collection objects",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Collection"
+        }
+      },
+      "EntityId": {
+        "description": "The UUID of an entity",
+        "type": "string"
+      },
+      "Entity": {
+        "type": "object",
+        "required": [
+          "entityId",
+          "collection",
+          "collectionId",
+          "organization",
+          "organizationId",
+          "createdBy",
+          "dateTimeLastUpdated",
+          "data"
+        ],
+        "properties": {
+          "entityId": {
+            "description": "The UUID of the entity",
+            "type": "string"
+          },
+          "collection": {
+            "description": "The name of the collection to which the entity belongs, unique to the organization",
+            "type": "string"
+          },
+          "collectionId": {
+            "description": "The UUID of the collection to which the entity belongs",
+            "type": "string"
+          },
+          "organization": {
+            "description": "The name of the organization to which the entity belongs",
+            "type": "string"
+          },
+          "organizationId": {
+            "description": "The UUID of the organization to which the entity belongs",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "The name of the organization responsible for creating the entity",
+            "type": "string"
+          },
+          "dateTimeLastUpdated": {
+            "description": "The datetime that the entity was last updated or changed",
+            "type": "string"
+          },
+          "data": {
+            "description": "The user-defined portion of the entity. The user can store any data they would like, so long as it matches the collection schema, if it has one",
+            "type": "object"
+          }
+        }
+      },
+      "EntityArray": {
+        "description": "An array of entity objects",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Entity"
+        }
+      },
+      "SuccessMessage": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "description": "A human readable success message",
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "description": "A human readable error message",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Api-Key"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ]
+};
 
   export default swagger;

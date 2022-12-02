@@ -821,6 +821,12 @@ router.delete('/:orgName/collections/:collectionName/entities/:entityId', checkA
         });
     }
 
+    if (result.deletedCount < 1) {
+        return res.status(404).json({
+            error: "Entity not found."
+        });
+    } 
+
     return res.status(200).json({
         message: "Entity successfully deleted."
     });

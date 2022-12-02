@@ -81,6 +81,7 @@ async function checkAuth(req, res, next) {
 
         const organizations = dbo.getOrganizationsCollection();
         let organization = await organizations.findOne({apiKey: encryptedAPIKey});
+        console.log(`Organization: ${JSON.stringify(organization)}`);
 
         if (organization == null) {
             console.log("organization was null");

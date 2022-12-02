@@ -447,16 +447,8 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
     let next = 0;
 
     // Attempted to count number of entities in each collection on the fly in the code below. Not sure if it will work in practice or not
-    await cursor.forEach(async doc  => {
+    await cursor.forEach(doc  => {
         if (i < limit) {
-            // Query the number of entities belonging to the collection
-            const entityCount = await entities.countDocuments({
-                collection: doc.name, 
-                collectionId: doc.collectionId, 
-                organization: req.passedData.organization, 
-                organizationId: req.passedData.organizationId
-            });
-            doc.numEntities = entityCount;
             itemArray.push(doc);
         } 
         
@@ -468,6 +460,31 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
         }
         i++;   
     });
+
+    /*
+    // Query the number of entities belonging to the collection
+            const entityCount = await entities.countDocuments({
+                collection: doc.name, 
+                collectionId: doc.collectionId, 
+                organization: req.passedData.organization, 
+                organizationId: req.passedData.organizationId
+            });
+            doc.numEntities = entityCount;
+     */
+
+    // Find the number of entities belonging to each collection in the array of collections and add it to the collection data
+    for (let item in itemArray) {
+        // Query the number of entities belonging to the collection
+        const entityCount = await entities.countDocuments({
+            collection: item.name, 
+            collectionId: item.collectionId, 
+            organization: req.passedData.organization, 
+            organizationId: req.passedData.organizationId
+        });
+        item.numEntities = entityCount;
+    }
+
+
 
     if (next == 0) {
         return res.status(200).json({

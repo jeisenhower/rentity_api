@@ -473,7 +473,7 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
      */
 
     // Find the number of entities belonging to each collection in the array of collections and add it to the collection data
-    for (let item in itemArray) {
+    for (let item of itemArray) {
         // Query the number of entities belonging to the collection
         const entityCount = await entities.countDocuments({
             collection: item.name, 

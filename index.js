@@ -7,8 +7,6 @@ import collectionsRoute from './routes/collections.js';
 import swagger from './documentation.js';
 
 
-// TODO: Specify PORT(int) and PRODUCTION (boolean) env variables
-
 const server = async (port) => {
 
     const app = express();

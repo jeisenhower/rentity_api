@@ -98,6 +98,7 @@ async function checkAuth(req, res, next) {
         let organization = await organizations.findOne({apiKey: encryptedAPIKey});
 
         if (organization == null) {
+            console.log("organization was null");
             return res.status(401).json({
                 error: "Access denied. Invalid API key."
             });
@@ -105,6 +106,7 @@ async function checkAuth(req, res, next) {
 
         let decryptedAPIKey = hash.decrypt(organization.apiKey);
         if (decryptedAPIKey !== req.headers['x-api-key']) {
+            console.log("Api key did not match when decrypted");
             return res.status(401).json({
                 error: "Access denied. Invalid API key."
             });

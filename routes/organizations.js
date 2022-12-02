@@ -524,6 +524,17 @@ router.get('/:orgName/collections/:collectionName', checkAuth, async (req, res) 
         });
     }
 
+    // Query the number of entities belonging to this collection
+    const entities = dbo.getEntitiesCollection();
+    const numEntities = await entities.countDocuments({
+        organization: req.passedData.organization, 
+        organizationId: req.passedData.organizationId,
+        collection: req.params.collectionName,
+        collectionId: collection.collectionId
+    });
+
+    collection.numEntities = numEntities;
+
     return res.status(200).json(collection);
 });
 

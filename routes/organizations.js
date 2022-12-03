@@ -355,8 +355,8 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
     };
 
     // One last thing to do is decide if we should include a schema key
-    if (req.body.schema !== undefined) {
-        collectionObj.schema = req.body.schema;
+    if (req.body.collectionSchema !== undefined) {
+        collectionObj.collectionSchema = req.body.collectionSchema;
     }
 
     // Allow the user to create an optional description field that can hold whatever data the user wants (most likely for common data among entities 
@@ -641,9 +641,9 @@ router.post('/:orgName/collections/:collectionName/entities', checkAuth, async (
 
 
     // The collection exists. Check if it has a schema
-    if (collection.schema !== undefined) {
+    if (collection.collectionSchema !== undefined) {
         // Check the schema against the data field provided in the request body
-        if (!inspector.validate(collection.schema, req.body.data)) {
+        if (!inspector.validate(collection.collectionSchema, req.body.data)) {
             return res.status(400).json({
                 error: "Entity does not match schema of the collection. All entities within a collection with a specified schema must match that schema"
             });

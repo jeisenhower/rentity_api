@@ -8,10 +8,18 @@ const swagger = {
   "paths": {
     "/organizations": {
       "post": {
-        "summary": "Create a new organization",
+        "summary": "Create a new organization. Organizations can hold collections which may define schemas and have user-defined descriptions. Collections can hold entities.",
         "responses": {
           "201": {
             "description": "New organization has been created",
+            "headers": {
+              "x-api-key": {
+                "schema": {
+                  "type": "string",
+                  "description": "The api key for the organization to access its content"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -47,6 +55,11 @@ const swagger = {
       ],
       "get": {
         "summary": "Get organization profile information",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The organization corresponding to the provided unique `organizationName`",
@@ -82,6 +95,11 @@ const swagger = {
       },
       "delete": {
         "summary": "Delete the organization and all collections and entities associated with it",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The organization and all associated collection and entities were deleted",
@@ -139,7 +157,12 @@ const swagger = {
         }
       ],
       "post": {
-        "summary": "Create a new collection belonging to an organization",
+        "summary": "Create a new collection belonging to an organization. A collection can contain a description field which typically defines common data among all of a collection's entities",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "201": {
             "description": "New collection successfully created",
@@ -197,7 +220,12 @@ const swagger = {
         }
       ],
       "post": {
-        "summary": "Run an advanced query with the request body contents on the collections endpoint within an organization",
+        "summary": "Run an advanced query with the request body contents on the collections endpoint within an organization. Collections matching the query are returned",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful query",
@@ -245,6 +273,11 @@ const swagger = {
       ],
       "get": {
         "summary": "Read a collection",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The specified collection was successfully read",
@@ -290,6 +323,11 @@ const swagger = {
       },
       "delete": {
         "summary": "Delete a collection and all entities associated with that collection",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The collection and all its entities were successfully deleted",
@@ -356,6 +394,11 @@ const swagger = {
       ],
       "patch": {
         "summary": "Update the description field of a collection. No other fields in the collection are allowed to be modified at will by users.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The specified collection was successfully updated",
@@ -422,7 +465,12 @@ const swagger = {
         }
       ],
       "post": {
-        "summary": "Create a new entity within a collection belonging to an organization",
+        "summary": "Create a new entity within a collection belonging to an organization. If the collection to which the entity is added contains a schema, the entity must match that schema",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "201": {
             "description": "The entity was successfully created",
@@ -490,6 +538,11 @@ const swagger = {
       ],
       "post": {
         "summary": "Run an advanced query using the request body as query paramters to get matching entities from a collection",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The query ran successfully and any matching entities are returned",
@@ -546,6 +599,11 @@ const swagger = {
       ],
       "get": {
         "summary": "Read an entity",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully found and returned the specified entity",
@@ -571,6 +629,11 @@ const swagger = {
       },
       "patch": {
         "summary": "Update an entity. Only the data field of the entity can be updated by the user",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The entity was successfully updated",
@@ -626,6 +689,11 @@ const swagger = {
       },
       "delete": {
         "summary": "Delete an entity from a collection",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully deleted the specified entity",
@@ -688,6 +756,7 @@ const swagger = {
         "description": "The unique organization name identifier"
       },
       "Organization": {
+        "description": "The root profile necessary for creation of collections and entities. An organization profile could belong to a singular user, or to an entire organization",
         "type": "object",
         "required": [
           "organizationId",
@@ -734,6 +803,7 @@ const swagger = {
         "description": "The name of the collection, unique to the organization"
       },
       "Collection": {
+        "description": "A grouping of entities within an organization. Organizations create collections in order to organize their entities. Collections can hold common data among entities as well as schemas which all its entities must match",
         "type": "object",
         "required": [
           "name",
@@ -750,7 +820,7 @@ const swagger = {
             "type": "string"
           },
           "collectionId": {
-            "description": "The UUID of the new collection",
+            "description": "The UUID of the new collection, assigned automatically by the Rentity API",
             "type": "string"
           },
           "creator": {
@@ -774,7 +844,7 @@ const swagger = {
             "type": "string"
           },
           "description": {
-            "description": "An optional, potentially nested object that includes any common data among all entities within the collection",
+            "description": "An optional, potentially nested object that may include any common data among all entities within the collection. Users can use this field however they see fit",
             "type": "object"
           },
           "schema": {
@@ -795,6 +865,7 @@ const swagger = {
         "type": "string"
       },
       "Entity": {
+        "description": "A physical object or thing whose state can be represented and tracked as a database object in the Rentity API.",
         "type": "object",
         "required": [
           "entityId",

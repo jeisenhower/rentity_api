@@ -3,20 +3,19 @@ const swagger = {
   "info": {
     "version": "1.0.0",
     "title": "Rentity",
-    "description": "Create entities and rent them out to your users in any way you like."
+    "description": "Create entities and rent them out to your users in any way you like. Start by creating an organization account. With that account, users can add collections and entities. Collections can define a description which can define common data among all of the collection's entities. Entities are objects or things whose state can be represented in the Rentity API database. Users define how to describe an entity."
   },
   "paths": {
     "/organizations": {
       "post": {
-        "summary": "Create a new organization. Organizations can hold collections which may define schemas and have user-defined descriptions. Collections can hold entities.",
+        "summary": "Create a new organization. Organizations can hold collections which may define schemas and have user-defined descriptions. Collections can hold entities",
         "responses": {
           "201": {
             "description": "New organization has been created",
             "headers": {
               "x-api-key": {
                 "schema": {
-                  "type": "string",
-                  "description": "The api key for the organization to access its content"
+                  "$ref": "#/components/schemas/X-API-KEY"
                 }
               }
             },
@@ -30,6 +29,16 @@ const swagger = {
           },
           "400": {
             "description": "Duplicate organization. Organization needs unique organization name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -57,7 +66,12 @@ const swagger = {
         "summary": "Get organization profile information",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -90,6 +104,16 @@ const swagger = {
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error. Could not get organization data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -97,7 +121,12 @@ const swagger = {
         "summary": "Delete the organization and all collections and entities associated with it",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -140,6 +169,16 @@ const swagger = {
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error. Could not delete organization and its collections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -160,7 +199,12 @@ const swagger = {
         "summary": "Create a new collection belonging to an organization. A collection can contain a description field which typically defines common data among all of a collection's entities",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -223,7 +267,12 @@ const swagger = {
         "summary": "Run an advanced query with the request body contents on the collections endpoint within an organization. Collections matching the query are returned",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -239,6 +288,16 @@ const swagger = {
           },
           "401": {
             "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Could not run the query",
             "content": {
               "application/json": {
                 "schema": {
@@ -275,7 +334,12 @@ const swagger = {
         "summary": "Read a collection",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -318,6 +382,16 @@ const swagger = {
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error. Could not get collection data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -325,7 +399,12 @@ const swagger = {
         "summary": "Delete a collection and all entities associated with that collection",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -393,10 +472,15 @@ const swagger = {
         }
       ],
       "patch": {
-        "summary": "Update the description field of a collection. No other fields in the collection are allowed to be modified at will by users.",
+        "summary": "Update the description field of a collection. No other fields in the collection are allowed to be modified at will by users",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -431,7 +515,17 @@ const swagger = {
             }
           },
           "403": {
-            "description": "Datetime last updated of the collection does not match that of the URL.",
+            "description": "Datetime last updated of the collection does not match that of the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Could not update the collection",
             "content": {
               "application/json": {
                 "schema": {
@@ -468,7 +562,12 @@ const swagger = {
         "summary": "Create a new entity within a collection belonging to an organization. If the collection to which the entity is added contains a schema, the entity must match that schema",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -540,7 +639,12 @@ const swagger = {
         "summary": "Run an advanced query using the request body as query paramters to get matching entities from a collection",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -556,6 +660,16 @@ const swagger = {
           },
           "401": {
             "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Could not perform the query",
             "content": {
               "application/json": {
                 "schema": {
@@ -601,7 +715,12 @@ const swagger = {
         "summary": "Read an entity",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -624,14 +743,144 @@ const swagger = {
                 }
               }
             }
+          },
+          "404": {
+            "description": "No entity found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Could not get entity data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
+      "delete": {
+        "summary": "Delete an entity from a collection",
+        "security": [
+          {
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully deleted the specified entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Improper URL format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Could not find entity to be deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Could not fully delete entity due to internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationName}/collections/{collectionName}/entities/{entityId}/{dateTimeLastUpdated}": {
+      "parameters": [
+        {
+          "name": "organizationName",
+          "description": "The unique name of the organization which the user is trying to access",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/OrganizationName"
+          }
+        },
+        {
+          "name": "collectionName",
+          "description": "Name of the collection belonging to the organization",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CollectionName"
+          }
+        },
+        {
+          "name": "entityId",
+          "description": "The unique identifier of the entity the user is trying to access within the collection",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/EntityId"
+          }
+        },
+        {
+          "name": "dateTimeLastUpdated",
+          "description": "The datetime in milliseconds that the collection was last updated",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DateTimeLastUpdated"
+          }
+        }
+      ],
       "patch": {
         "summary": "Update an entity. Only the data field of the entity can be updated by the user",
         "security": [
           {
-            "ApiKeyAuth": []
+            "ApiKey": [],
+            "OrganizationId": []
+          },
+          {
+            "ApiKey": [],
+            "OrganizationNameKey": []
           }
         ],
         "responses": {
@@ -684,59 +933,9 @@ const swagger = {
                 }
               }
             }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete an entity from a collection",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully deleted the specified entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessMessage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Improper URL format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized. Provided API key does not permit access to the organization specified in the URL",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Could not find entity to be deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
           },
           "500": {
-            "description": "Could not fully delete entity due to internal server error",
+            "description": "Internal server error. Could not update the entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -847,7 +1046,7 @@ const swagger = {
             "description": "An optional, potentially nested object that may include any common data among all entities within the collection. Users can use this field however they see fit",
             "type": "object"
           },
-          "schema": {
+          "collectionSchema": {
             "description": "An optional nested object that outlines the schema of all entities created within the collection",
             "type": "object"
           }
@@ -919,6 +1118,10 @@ const swagger = {
           "$ref": "#/components/schemas/Entity"
         }
       },
+      "X-API-KEY": {
+        "type": "string",
+        "description": "The api key for the organization to access its content"
+      },
       "SuccessMessage": {
         "type": "object",
         "required": [
@@ -949,12 +1152,27 @@ const swagger = {
         "type": "apiKey",
         "in": "header",
         "name": "X-Api-Key"
+      },
+      "OrganizationId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Organization-Id"
+      },
+      "OrganizationNameKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Organization"
       }
     }
   },
   "security": [
     {
-      "ApiKey": []
+      "ApiKey": [],
+      "OrganizationId": []
+    },
+    {
+      "ApiKey": [],
+      "OrganizationNameKey": []
     }
   ]
 };

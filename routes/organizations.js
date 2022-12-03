@@ -132,7 +132,7 @@ async function checkAuth(req, res, next) {
 
 router.post('/', async (req, res) => {
     // Create a new organization
-    if (!req.body.fname || !req.body.lname || !req.body.email || !req.body.organization || !req.headers['password']) {
+    if (!req.body.fname || !req.body.lname || !req.body.email || !req.body.organization) {
         return res.status(400).json({
             error: "Improper user creation format"
         });
@@ -171,9 +171,6 @@ router.post('/', async (req, res) => {
     // Generate a unique ID for the user
     const publicId = uuidv4();
 
-    // Generate and store encrypted password based on input password in the headers
-    const encryptedPass = hash.encrypt(req.headers['password']);
-
     // Generate an API key/refresh token for the user
     const newKey = generateApiKey({method: 'base32'});
 
@@ -190,7 +187,6 @@ router.post('/', async (req, res) => {
         organization: org,
         fname: req.body.fname,
         lname: req.body.lname,
-        password: encryptedPass,
         email: req.body.email,
         apiKey: encryptedAPIKey,
         keyExpiration: Date.now() + (1000*60*60*24*365),

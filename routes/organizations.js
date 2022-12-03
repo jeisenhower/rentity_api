@@ -141,82 +141,87 @@ router.post('/', async (req, res) => {
     // convert the organization name to spaces replaced with underscores and all lowercase
     let org = req.body.organization.toLowerCase();
     org = org.replace(/\s+/g, '-'); 
+    
+    try {
+        // Make sure that the organization name is unique
+        const organizations = dbo.getOrganizationsCollection();
+        let duplicates;
+        try {
+            duplicates = await organizations.countDocuments({ organization: org });
+        } catch (err) {
+            return res.status(400).json({
+                error: err
+            });
+        }
 
-    // Make sure that the organization name is unique
-    const organizations = dbo.getOrganizationsCollection();
-    let duplicates;
-    try{
-        duplicates = await organizations.countDocuments({organization: org});
+        console.log(`Duplicate organization name count: ${duplicates}`);
+
+        if (duplicates > 0) {
+            return res.status(403).json({
+                error: "The organization name you provided already exists. Please choose another."
+            });
+        }
+
+        // Check the user's email format is correct
+        if (!validateEmail(req.body.email)) {
+            return res.status(400).json({
+                error: "Improper email format. Please provide a valid email address"
+            });
+        }
+
+        // Generate a unique ID for the user
+        const publicId = uuidv4();
+
+        // Generate an API key/refresh token for the user
+        const newKey = generateApiKey({ method: 'base32' });
+
+        // Encrypt the API key
+        // Use the same iv value that the password was hashed with
+        const encryptedAPIKey = hash.encrypt(newKey);
+
+        // NOTE: The key expiration date is a year from the day of creation of the account. This will not be needed in this iteration, but
+        // it may be nice to have in the future to enforce renewal of API keys for better security.
+
+        // Move forward with creating the new user
+        const user = {
+            organizationId: publicId,
+            organization: org,
+            fname: req.body.fname,
+            lname: req.body.lname,
+            email: req.body.email,
+            apiKey: encryptedAPIKey,
+            keyExpiration: Date.now() + (1000 * 60 * 60 * 24 * 365),
+            verified: true,
+            loggedIn: true
+        };
+
+        const orgCollection = dbo.getOrganizationsCollection();
+
+        const result = await orgCollection.insertOne(user);
+
+        // Check if the storage was a success
+        if (result.acknowledged != true) {
+            return res.status(500).json({
+                error: "Could not store user account in the database. Please try again later."
+            });
+        }
+
+
+        // Send response to user
+        return res.status(201).setHeader('x-api-key', newKey).json({
+            organizationId: publicId,
+            organization: org,
+            fname: req.body.fname,
+            lname: req.body.lname,
+            email: req.body.email,
+            collections: 0,
+            entities: 0,
+        });
     } catch (err) {
-        return res.status(400).json({
+        return res.status(500).json({
             error: err
         });
     }
-
-    console.log(`Duplicate organization name count: ${duplicates}`);
-
-    if (duplicates > 0) {
-        return res.status(403).json({
-            error: "The organization name you provided already exists. Please choose another."
-        });
-    }
-
-    // Check the user's email format is correct
-    if (!validateEmail(req.body.email)) {
-        return res.status(400).json({
-            error: "Improper email format. Please provide a valid email address"
-        });
-    }
-
-    // Generate a unique ID for the user
-    const publicId = uuidv4();
-
-    // Generate an API key/refresh token for the user
-    const newKey = generateApiKey({method: 'base32'});
-
-    // Encrypt the API key
-    // Use the same iv value that the password was hashed with
-    const encryptedAPIKey = hash.encrypt(newKey);
-
-    // NOTE: The key expiration date is a year from the day of creation of the account. This will not be needed in this iteration, but
-    // it may be nice to have in the future to enforce renewal of API keys for better security.
-
-    // Move forward with creating the new user
-    const user = {
-        organizationId: publicId,
-        organization: org,
-        fname: req.body.fname,
-        lname: req.body.lname,
-        email: req.body.email,
-        apiKey: encryptedAPIKey,
-        keyExpiration: Date.now() + (1000*60*60*24*365),
-        verified: true,
-        loggedIn: true
-    };
-
-    const orgCollection = dbo.getOrganizationsCollection();
-
-    const result = await orgCollection.insertOne(user);
-
-    // Check if the storage was a success
-    if (result.acknowledged != true) {
-        return res.status(400).json({
-            error: "Could not store user account in the database. Please try again later."
-        });
-    }
-
-
-    // Send response to user
-    return res.status(201).setHeader('x-api-key', newKey).json({
-        organizationId: publicId,
-        organization: org,
-        fname: req.body.fname,
-        lname: req.body.lname,
-        email: req.body.email,
-        collections: 0,
-        entities: 0,
-    });
-    
 });
 
 router.get('/:orgName', checkAuth, async (req, res) => {
@@ -227,7 +232,8 @@ router.get('/:orgName', checkAuth, async (req, res) => {
         });
     }
 
-    const orgs = dbo.getOrganizationsCollection();
+    try {
+        const orgs = dbo.getOrganizationsCollection();
     const org = await orgs.findOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
     if (org == null) {
         return res.status(404).json({
@@ -254,6 +260,11 @@ router.get('/:orgName', checkAuth, async (req, res) => {
     return res.status(200).json({
         profile: obj
     })
+    } catch (err) {
+        return res.status(500).json({
+            error: "Internal server error. Could not get organization data."
+        });
+    }
 });
 
 // Delete an organization account
@@ -264,34 +275,50 @@ router.delete('/:orgName', checkAuth, async (req, res) => {
         });
     }
 
-    // Find the organization and delete it. Also delete all collections and entities belonging to the organization
-    const collections = dbo.getCollectionsCollection();
-    const entities = dbo.getEntitiesCollection();
-    const orgs = dbo.getOrganizationsCollection();
+    try {
+        // Find the organization and delete it. Also delete all collections and entities belonging to the organization
+        const collections = dbo.getCollectionsCollection();
+        const entities = dbo.getEntitiesCollection();
+        const orgs = dbo.getOrganizationsCollection();
 
-    // Delete all entities belonging to the organization
-    const entityResult = await entities.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (!entityResult.acknowledged) {
-        return res.status(404).json({
-            error: "Could not delete entities."
-        });
-    }
-    const collectionsResult = await collections.deleteMany({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (!collectionsResult.acknowledged) {
-        return res.status(400).json({
-            error: "Could not delete collections."
-        });
-    }
-    const orgResult = await orgs.deleteOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (!collectionsResult.acknowledged) {
-        return res.status(400).json({
-            error: "Could not delete collections."
-        });
-    }
+        // Check if organization exists
+        const org = await orgs.findOne({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
 
-    return res.status(200).json({
-        message: "Your organization has been successfully deleted."
-    })
+        if (org == null) {
+            return res.status(404).json({
+                error: "Organization does not exist."
+            });
+        }
+
+
+        // Delete all entities belonging to the organization
+        const entityResult = await entities.deleteMany({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
+        if (!entityResult.acknowledged) {
+            return res.status(500).json({
+                error: "Could not delete entities."
+            });
+        }
+        const collectionsResult = await collections.deleteMany({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
+        if (!collectionsResult.acknowledged) {
+            return res.status(500).json({
+                error: "Could not delete collections."
+            });
+        }
+        const orgResult = await orgs.deleteOne({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
+        if (!orgResult.acknowledged) {
+            return res.status(500).json({
+                error: "Could not delete collections."
+            });
+        }
+
+        return res.status(200).json({
+            message: "Your organization has been successfully deleted."
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err
+        });
+    }
 });
 
 
@@ -321,63 +348,69 @@ router.post('/:orgName/collections', checkAuth, async (req, res) => {
         });
     }
 
-    const collectionsCollection = dbo.getCollectionsCollection();
+    try {
+        const collectionsCollection = dbo.getCollectionsCollection();
 
-    // Convert name to all lower case and replace spaces with underscores
-    let name = req.body.name.toLowerCase();
-    name = name.replace(/\s+/g, '-');
-    console.log(`name: ${name}`);
-
-
-    const collectionId = uuidv4();
+        // Convert name to all lower case and replace spaces with underscores
+        let name = req.body.name.toLowerCase();
+        name = name.replace(/\s+/g, '-');
+        console.log(`name: ${name}`);
 
 
-    // Make sure the collection name is unique for the user
-    const duplicates = await collectionsCollection.countDocuments({organizationId: organizationId, name: name});
-    if (duplicates > 0) {
-        return res.status(400).json({
-            error: "Each collection within an organization must have a unique name."
-        });
-    }
-    console.log(`organizationId: ${organizationId}`);
-    console.log(`Duplicates: ${duplicates}`);
+        const collectionId = uuidv4();
 
-    // isPublic is used for access by other users. I may not use this and just use tokens specified to access certain collections and what permissions they
-    // have to access those collections.
 
-    let collectionObj = {
-        name: name,
-        collectionId: collectionId,
-        creator: req.passedData.createdBy,
-        organizationId: organizationId,
-        organization: organization,
-        dateTimeLastUpdated: Date.now(),
-    };
+        // Make sure the collection name is unique for the user
+        const duplicates = await collectionsCollection.countDocuments({ organizationId: organizationId, name: name });
+        if (duplicates > 0) {
+            return res.status(400).json({
+                error: "Each collection within an organization must have a unique name."
+            });
+        }
+        console.log(`organizationId: ${organizationId}`);
+        console.log(`Duplicates: ${duplicates}`);
 
-    // One last thing to do is decide if we should include a schema key
-    if (req.body.collectionSchema !== undefined) {
-        collectionObj.collectionSchema = req.body.collectionSchema;
-    }
+        // isPublic is used for access by other users. I may not use this and just use tokens specified to access certain collections and what permissions they
+        // have to access those collections.
 
-    // Allow the user to create an optional description field that can hold whatever data the user wants (most likely for common data among entities 
-    // within the collection). The goal is to help prevent entities from having redundant data in them if possible.
-    if (req.body.description !== undefined) {
-        collectionObj.description = req.body.description;
-    }
+        let collectionObj = {
+            name: name,
+            collectionId: collectionId,
+            creator: req.passedData.createdBy,
+            organizationId: organizationId,
+            organization: organization,
+            dateTimeLastUpdated: Date.now(),
+        };
 
-    const result = await collectionsCollection.insertOne(collectionObj);
+        // One last thing to do is decide if we should include a schema key
+        if (req.body.collectionSchema !== undefined) {
+            collectionObj.collectionSchema = req.body.collectionSchema;
+        }
 
-    if (!result.acknowledged) {
+        // Allow the user to create an optional description field that can hold whatever data the user wants (most likely for common data among entities 
+        // within the collection). The goal is to help prevent entities from having redundant data in them if possible.
+        if (req.body.description !== undefined) {
+            collectionObj.description = req.body.description;
+        }
+
+        const result = await collectionsCollection.insertOne(collectionObj);
+
+        if (!result.acknowledged) {
+            return res.status(500).json({
+                error: "Could not store user account in the database. Please try again later."
+            });
+        }
+
+        // Add the entity count to the return object
+        collectionObj.numEntities = 0;
+
+
+        return res.status(201).json(collectionObj);
+    } catch (err) {
         return res.status(500).json({
-            error: "Could not store user account in the database. Please try again later."
+            error: err
         });
     }
-
-    // Add the entity count to the return object
-    collectionObj.numEntities = 0;
-
-
-    return res.status(201).json(collectionObj);
 });
 
 // Update the collection (other than the schema)
@@ -397,51 +430,57 @@ router.patch('/:orgName/collections/:collectionName/:dateTimeLastUpdated', check
         });
     }
 
-    // Match the API key with the provided collection name. Find the collection specified here within the organization corresponding to the provided key
-    const queryObj = {
-        name: req.params.collectionName,
-        organizationId: req.passedData.organizationId,
-        organization: req.passedData.organization
-    };
-    const collections = dbo.getCollectionsCollection();
-    const collection = await collections.findOne(queryObj);
+    try {
+        // Match the API key with the provided collection name. Find the collection specified here within the organization corresponding to the provided key
+        const queryObj = {
+            name: req.params.collectionName,
+            organizationId: req.passedData.organizationId,
+            organization: req.passedData.organization
+        };
+        const collections = dbo.getCollectionsCollection();
+        const collection = await collections.findOne(queryObj);
 
-    if (collection == null) {
-        return res.status(401).json({
-            error: "No matching collection found within the organization. Access denied."
-        });
-    }
-
-
-    // Check that dateTime last updated matches
-    if (parseInt(req.params.dateTimeLastUpdated) !== collection.dateTimeLastUpdated) {
-        return res.status(403).json({
-            error: "DateTime last updated does not match collection."
-        });
-    }
-
-    // Update the datetime last updated field to the current time
-    collection.dateTimeLastUpdated = Date.now();
-
-    // Update the collection description data only
-    for (let key in req.body) {
-        if (req.body.hasOwnProperty(key)) {
-            collection.description[key] = req.body[key];
+        if (collection == null) {
+            return res.status(401).json({
+                error: "No matching collection found within the organization. Access denied."
+            });
         }
-    }
 
-    const result = await collections.replaceOne(queryObj, collection);
 
-    if (!result.acknowledged || result.modifiedCount !== 1) {
-        return res.status({
-            error: "Could not update the collection due to server error. Please try again later."
+        // Check that dateTime last updated matches
+        if (parseInt(req.params.dateTimeLastUpdated) !== collection.dateTimeLastUpdated) {
+            return res.status(403).json({
+                error: "DateTime last updated does not match collection."
+            });
+        }
+
+        // Update the datetime last updated field to the current time
+        collection.dateTimeLastUpdated = Date.now();
+
+        // Update the collection description data only
+        for (let key in req.body) {
+            if (req.body.hasOwnProperty(key)) {
+                collection.description[key] = req.body[key];
+            }
+        }
+
+        const result = await collections.replaceOne(queryObj, collection);
+
+        if (!result.acknowledged || result.modifiedCount !== 1) {
+            return res.status(500).json({
+                error: "Could not update the collection due to server error. Please try again later."
+            });
+        }
+
+        return res.status(200).json({
+            result: result,
+            collection: collection
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err
         });
     }
-
-    return res.status(200).json({
-        result: result,
-        collection: collection
-    });
 
 });
 
@@ -453,78 +492,84 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
         });
     }
 
-    let limit = 15;
+    try {
+        let limit = 15;
 
-    let dbQueryObj = req.body;
-    
-    dbQueryObj.organization = req.passedData.organization;
-    dbQueryObj.organizationId = req.passedData.organizationId;
+        let dbQueryObj = req.body;
 
-    if (req.query.limit !== undefined) {
-        limit = req.query.limit;
-    }
-    if (req.query.next !== undefined) {
-        const oid = new ObjectId(req.query.next);
-        dbQueryObj._id = {$gt: oid};
-    }
+        dbQueryObj.organization = req.passedData.organization;
+        dbQueryObj.organizationId = req.passedData.organizationId;
 
-    const collections = dbo.getCollectionsCollection();
-    const cursor = collections.find(dbQueryObj);
-
-    const entities = dbo.getEntitiesCollection();
-
-    let i = 0;
-    let itemArray = [];
-    let next = 0;
-
-    // Attempted to count number of entities in each collection on the fly in the code below. Not sure if it will work in practice or not
-    await cursor.forEach(doc  => {
-        if (i < limit) {
-            itemArray.push(doc);
-        } 
-        
-        // Check if we have reached the end point for items that need to be returned. If we have, we set the 
-        // "next" value equal to the last value's _id so we can return all objects above its _id value in the
-        // next iteration or page.
-        if (i === limit - 1) {
-            next = doc._id;
+        if (req.query.limit !== undefined) {
+            limit = req.query.limit;
         }
-        i++;   
-    });
+        if (req.query.next !== undefined) {
+            const oid = new ObjectId(req.query.next);
+            dbQueryObj._id = { $gt: oid };
+        }
 
-    /*
-    // Query the number of entities belonging to the collection
+        const collections = dbo.getCollectionsCollection();
+        const cursor = collections.find(dbQueryObj);
+
+        const entities = dbo.getEntitiesCollection();
+
+        let i = 0;
+        let itemArray = [];
+        let next = 0;
+
+        // Attempted to count number of entities in each collection on the fly in the code below. Not sure if it will work in practice or not
+        await cursor.forEach(doc => {
+            if (i < limit) {
+                itemArray.push(doc);
+            }
+
+            // Check if we have reached the end point for items that need to be returned. If we have, we set the 
+            // "next" value equal to the last value's _id so we can return all objects above its _id value in the
+            // next iteration or page.
+            if (i === limit - 1) {
+                next = doc._id;
+            }
+            i++;
+        });
+
+        /*
+        // Query the number of entities belonging to the collection
+                const entityCount = await entities.countDocuments({
+                    collection: doc.name, 
+                    collectionId: doc.collectionId, 
+                    organization: req.passedData.organization, 
+                    organizationId: req.passedData.organizationId
+                });
+                doc.numEntities = entityCount;
+         */
+
+        // Find the number of entities belonging to each collection in the array of collections and add it to the collection data
+        for (let item of itemArray) {
+            // Query the number of entities belonging to the collection
             const entityCount = await entities.countDocuments({
-                collection: doc.name, 
-                collectionId: doc.collectionId, 
-                organization: req.passedData.organization, 
+                collection: item.name,
+                collectionId: item.collectionId,
+                organization: req.passedData.organization,
                 organizationId: req.passedData.organizationId
             });
-            doc.numEntities = entityCount;
-     */
-
-    // Find the number of entities belonging to each collection in the array of collections and add it to the collection data
-    for (let item of itemArray) {
-        // Query the number of entities belonging to the collection
-        const entityCount = await entities.countDocuments({
-            collection: item.name, 
-            collectionId: item.collectionId, 
-            organization: req.passedData.organization, 
-            organizationId: req.passedData.organizationId
-        });
-        item.numEntities = entityCount;
-    }
+            item.numEntities = entityCount;
+        }
 
 
 
-    if (next == 0) {
-        return res.status(200).json({
-            collections: itemArray
-        });
-    } else {
-        return res.status(200).json({
-            collections: itemArray,
-            next: next
+        if (next == 0) {
+            return res.status(200).json({
+                collections: itemArray
+            });
+        } else {
+            return res.status(200).json({
+                collections: itemArray,
+                next: next
+            });
+        }
+    } catch (err) {
+        return res.status(500).json({
+            error: "Internal server error. Could not run query."
         });
     }
 });
@@ -541,32 +586,38 @@ router.get('/:orgName/collections/:collectionName', checkAuth, async (req, res) 
         });
     }
 
-    // Query the collection name within the organization
-    const collections = dbo.getCollectionsCollection();
-    const collection = await collections.findOne({
-        organization: req.passedData.organization, 
-        organizationId: req.passedData.organizationId,
-        name: req.params.collectionName
-    });
+    try {
+        // Query the collection name within the organization
+        const collections = dbo.getCollectionsCollection();
+        const collection = await collections.findOne({
+            organization: req.passedData.organization,
+            organizationId: req.passedData.organizationId,
+            name: req.params.collectionName
+        });
 
-    if (collection == null) {
-        return res.status(404).json({
-            error: "No collection matching this collection name found within the organization."
+        if (collection == null) {
+            return res.status(404).json({
+                error: "No collection matching this collection name found within the organization."
+            });
+        }
+
+        // Query the number of entities belonging to this collection
+        const entities = dbo.getEntitiesCollection();
+        const numEntities = await entities.countDocuments({
+            organization: req.passedData.organization,
+            organizationId: req.passedData.organizationId,
+            collection: req.params.collectionName,
+            collectionId: collection.collectionId
+        });
+
+        collection.numEntities = numEntities;
+
+        return res.status(200).json(collection);
+    } catch (err) {
+        return res.status(500).json({
+            error: err
         });
     }
-
-    // Query the number of entities belonging to this collection
-    const entities = dbo.getEntitiesCollection();
-    const numEntities = await entities.countDocuments({
-        organization: req.passedData.organization, 
-        organizationId: req.passedData.organizationId,
-        collection: req.params.collectionName,
-        collectionId: collection.collectionId
-    });
-
-    collection.numEntities = numEntities;
-
-    return res.status(200).json(collection);
 });
 
 // Delete collection and all entities within the collection
@@ -577,39 +628,45 @@ router.delete('/:orgName/collections/:collectionName', checkAuth, async (req, re
         });
     }
 
-    const collectionQueryObj = {
-        organization: req.passedData.organization,
-        organizationId: req.passedData.organizationId,
-        name: req.params.collectionName
-    };
-
-    const entityQueryObj = {
-        organization: req.passedData.organization,
-        organizationId: req.passedData.organizationId,
-        collection: req.params.collectionName
-    };
-
-    // Delete the entities belonging to the collection.
-    const entities = dbo.getEntitiesCollection();
-    const resultA = await entities.deleteMany(entityQueryObj);
-    if (!resultA.acknowledged) {
-        return res.status(500).json({
-            error: "Could not delete entities belonging to the collection due to server error. Collection and entities remain undeleted."
-        });
-    }
-
-    // If entity deletion successful, delete the collection itself
-    const collections = dbo.getCollectionsCollection();
-    const resultB = await collections.deleteOne(collectionQueryObj);
-    if (resultB.deletedCount !== 1) {
-        return res.status(500).json({
-            error: "Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself."
-        });
-    }
+    try {
+        const collectionQueryObj = {
+            organization: req.passedData.organization,
+            organizationId: req.passedData.organizationId,
+            name: req.params.collectionName
+        };
     
-    return res.status(200).json({
-        message: `${req.params.collectionName} collection and its entities successfully deleted.`
-    });
+        const entityQueryObj = {
+            organization: req.passedData.organization,
+            organizationId: req.passedData.organizationId,
+            collection: req.params.collectionName
+        };
+    
+        // Delete the entities belonging to the collection.
+        const entities = dbo.getEntitiesCollection();
+        const resultA = await entities.deleteMany(entityQueryObj);
+        if (!resultA.acknowledged) {
+            return res.status(500).json({
+                error: "Could not delete entities belonging to the collection due to server error. Collection and entities remain undeleted."
+            });
+        }
+    
+        // If entity deletion successful, delete the collection itself
+        const collections = dbo.getCollectionsCollection();
+        const resultB = await collections.deleteOne(collectionQueryObj);
+        if (resultB.deletedCount !== 1) {
+            return res.status(500).json({
+                error: "Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself."
+            });
+        }
+        
+        return res.status(200).json({
+            message: `${req.params.collectionName} collection and its entities successfully deleted.`
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err
+        });
+    }
 
 });
 
@@ -625,60 +682,66 @@ router.post('/:orgName/collections/:collectionName/entities', checkAuth, async (
         });
     }
 
-    // Query the collection with the organization name, ID, and the collection name
-    const collections = dbo.getCollectionsCollection();
-    const collectionQuery = {
-        name: req.params.collectionName, organizationId: req.passedData.organizationId,
-        organization: req.passedData.organization
-    };
-    const collection = await collections.findOne(collectionQuery);
+    try {
+        // Query the collection with the organization name, ID, and the collection name
+        const collections = dbo.getCollectionsCollection();
+        const collectionQuery = {
+            name: req.params.collectionName, organizationId: req.passedData.organizationId,
+            organization: req.passedData.organization
+        };
+        const collection = await collections.findOne(collectionQuery);
 
-    if (collection == null) {
-        return res.status(401).json({
-            error: "No matching collection found within the organization. Access denied."
-        });
-    }
-
-
-    // The collection exists. Check if it has a schema
-    if (collection.collectionSchema !== undefined) {
-        // Check the schema against the data field provided in the request body
-        if (!inspector.validate(collection.collectionSchema, req.body.data)) {
-            return res.status(400).json({
-                error: "Entity does not match schema of the collection. All entities within a collection with a specified schema must match that schema"
+        if (collection == null) {
+            return res.status(401).json({
+                error: "No matching collection found within the organization. Access denied."
             });
         }
-    } 
+
+
+        // The collection exists. Check if it has a schema
+        if (collection.collectionSchema !== undefined) {
+            // Check the schema against the data field provided in the request body
+            if (!inspector.validate(collection.collectionSchema, req.body.data)) {
+                return res.status(400).json({
+                    error: "Entity does not match schema of the collection. All entities within a collection with a specified schema must match that schema"
+                });
+            }
+        }
 
 
 
-    const entityId = uuidv4();
+        const entityId = uuidv4();
 
 
-    const entityObj = {
-        entityId: entityId,
-        collection: collection.name,
-        collectionId: collection.collectionId,
-        organization: req.passedData.organization,
-        organizationId: req.passedData.organizationId,
-        createdBy: req.passedData.createdBy,
-        dateTimeLastUpdated: Date.now(),
-        data: req.body
-    };
+        const entityObj = {
+            entityId: entityId,
+            collection: collection.name,
+            collectionId: collection.collectionId,
+            organization: req.passedData.organization,
+            organizationId: req.passedData.organizationId,
+            createdBy: req.passedData.createdBy,
+            dateTimeLastUpdated: Date.now(),
+            data: req.body
+        };
 
-    // Create the entity
-    const dbCollection = dbo.getEntitiesCollection();
-    const result = await dbCollection.insertOne(entityObj);
+        // Create the entity
+        const dbCollection = dbo.getEntitiesCollection();
+        const result = await dbCollection.insertOne(entityObj);
 
-    if (!result.acknowledged) {
+        if (!result.acknowledged) {
+            return res.status(500).json({
+                error: "Could not persist new entity to the database. Please try again later."
+            });
+
+        }
+
+        // Return the result of the insert to the user
+        return res.status(201).json(entityObj);
+    } catch (err) {
         return res.status(500).json({
-            error: "Could not persist new entity to the database. Please try again later."
+            error: err
         });
-        
-    } 
-
-    // Return the result of the insert to the user
-    return res.status(201).json(entityObj);
+    }
 
 });
 
@@ -690,20 +753,26 @@ router.get('/:orgName/collections/:collectionName/entities/:entityId', checkAuth
         });
     }
 
-    const entities = dbo.getEntitiesCollection();
-    const entity = await entities.findOne({
-        entityId: req.params.entityId,
-        collection: req.params.collectionName,
-        organizationId: req.passedData.organizationId
-    });
-
-    if (entity == null) {
-        return res.status(401).json({
-            error: "No matching entity found within the organization. Access denied."
+    try {
+        const entities = dbo.getEntitiesCollection();
+        const entity = await entities.findOne({
+            entityId: req.params.entityId,
+            collection: req.params.collectionName,
+            organizationId: req.passedData.organizationId
         });
-    } else {
-        return res.status(200).json({
-            entity: entity
+
+        if (entity == null) {
+            return res.status(404).json({
+                error: "No matching entity found within the organization."
+            });
+        } else {
+            return res.status(200).json({
+                entity: entity
+            });
+        }
+    } catch (err) {
+        return res.status(500).json({
+            error: err
         });
     }
 
@@ -725,74 +794,80 @@ router.patch('/:orgName/collections/:collectionName/entities/:entityId/:dateTime
         });
     }
 
-    // Match the API key with the provided entity ID. Find the entity specified here within the organization corresponding to the provided key
-    const entities = dbo.getEntitiesCollection();
-    const entity = await entities.findOne({
-        entityId: req.params.entityId,
-        collection: req.params.collectionName,
-        organizationId: req.passedData.organizationId
-    });
-
-    if (entity == null) {
-        return res.status(404).json({
-            error: "No matching entity found within the organization. Access denied."
+    try {
+        // Match the API key with the provided entity ID. Find the entity specified here within the organization corresponding to the provided key
+        const entities = dbo.getEntitiesCollection();
+        const entity = await entities.findOne({
+            entityId: req.params.entityId,
+            collection: req.params.collectionName,
+            organizationId: req.passedData.organizationId
         });
-    }
 
-
-    // Check that dateTime last updated matches
-    if (parseInt(req.params.dateTimeLastUpdated) !== entity.dateTimeLastUpdated) {
-        return res.status(403).json({
-            error: "DateTime last updated does not match entity."
-        });
-    }
-
-    // Get the collection that the entity belongs to and check if it has a schema.
-    const collections = dbo.getCollectionsCollection();
-    const collection = await collections.findOne({collectionId: entity.collectionId});
-
-    if (collection == null) {
-        return res.status(404).json({
-            error: "Collection does not exist."
-        });
-    } 
-
-    // DateTime last updated must match, so update the dateTimeLastUpdated field in the entity to the current dateTime
-    entity.dateTimeLastUpdated = Date.now();
-
-    // Change the entity based on the entity ID provided.
-    // Only allow changes to occur within the data field of the entity
-    for (var key in req.body) {
-        if (req.body.hasOwnProperty(key)) {
-            // Add the property or change it
-            entity.data[key] = req.body[key];
-        }
-    }
-
-    if (collection.schema !== undefined) {
-        // Check the newly modified entity against the schema in the collection
-        if (!inspector.validate(collection.schema, entity.data)) {
-            return res.status(400).json({
-                error: "The entity you are trying to modify belongs to a collection with a pre-defined schema. The entity's data must match that of the collection."
+        if (entity == null) {
+            return res.status(404).json({
+                error: "No matching entity found within the organization. Access denied."
             });
         }
-    }
 
-    const query = {
-        organizationId: entity.organizationId,
-        entityId: entity.entityId,
-        dateTimeLastUpdated: parseInt(req.params.dateTimeLastUpdated)
-    };
 
-    const result = await entities.replaceOne(query, entity);
+        // Check that dateTime last updated matches
+        if (parseInt(req.params.dateTimeLastUpdated) !== entity.dateTimeLastUpdated) {
+            return res.status(403).json({
+                error: "DateTime last updated does not match entity."
+            });
+        }
 
-    if (!result.acknowledged || result.modifiedCount !== 1) {
-        return res.status({
-            error: "Could not update the entity due to server error. Please try again later."
+        // Get the collection that the entity belongs to and check if it has a schema.
+        const collections = dbo.getCollectionsCollection();
+        const collection = await collections.findOne({ collectionId: entity.collectionId });
+
+        if (collection == null) {
+            return res.status(404).json({
+                error: "Collection does not exist."
+            });
+        }
+
+        // DateTime last updated must match, so update the dateTimeLastUpdated field in the entity to the current dateTime
+        entity.dateTimeLastUpdated = Date.now();
+
+        // Change the entity based on the entity ID provided.
+        // Only allow changes to occur within the data field of the entity
+        for (var key in req.body) {
+            if (req.body.hasOwnProperty(key)) {
+                // Add the property or change it
+                entity.data[key] = req.body[key];
+            }
+        }
+
+        if (collection.schema !== undefined) {
+            // Check the newly modified entity against the schema in the collection
+            if (!inspector.validate(collection.schema, entity.data)) {
+                return res.status(400).json({
+                    error: "The entity you are trying to modify belongs to a collection with a pre-defined schema. The entity's data must match that of the collection."
+                });
+            }
+        }
+
+        const query = {
+            organizationId: entity.organizationId,
+            entityId: entity.entityId,
+            dateTimeLastUpdated: parseInt(req.params.dateTimeLastUpdated)
+        };
+
+        const result = await entities.replaceOne(query, entity);
+
+        if (!result.acknowledged || result.modifiedCount !== 1) {
+            return res.status(500).json({
+                error: "Could not update the entity due to server error. Please try again later."
+            });
+        }
+
+        return res.status(200).json(entity);
+    } catch (err) {
+        return res.status(500).json({
+            error: err
         });
     }
-
-    return res.status(200).json(entity);
 });
 
 
@@ -804,59 +879,64 @@ router.post('/:orgName/collections/:collectionName/entities/queries', checkAuth,
         });
     }
 
-    let limit = 15;
+    try {
+        let limit = 15;
 
-    let dbQueryObj = req.body;
+        let dbQueryObj = req.body;
 
-    // Add the organization data corresponding to the provided api key to the query object
-    dbQueryObj.organizationId = req.passedData.organizationId;
-    dbQueryObj.organization = req.passedData.organization;
-    dbQueryObj.collection = req.params.collectionName;
+        // Add the organization data corresponding to the provided api key to the query object
+        dbQueryObj.organizationId = req.passedData.organizationId;
+        dbQueryObj.organization = req.passedData.organization;
+        dbQueryObj.collection = req.params.collectionName;
 
-    if (req.query.limit !== undefined) {
-        limit = req.query.limit;
-    }
-
-    if (req.query.next !== undefined) {
-        const oid = new ObjectId(req.query.next);
-        dbQueryObj._id = {$gt: oid};
-    }
-
-    console.log(req.query.limit);
-    console.log(req.query.next);
-
-    const entities = dbo.getEntitiesCollection();
-
-    const cursor = entities.find(dbQueryObj).sort({_id: 1});
-
-    let i = 0;
-    let itemArray = [];
-    let next = 0;
-    await cursor.forEach(doc => {
-        if (i < limit) {
-            itemArray.push(doc);
-        } 
-        
-        // Check if we have reached the end point for items that need to be returned. If we have, we set the 
-        // "next" value equal to the last value's _id so we can return all objects above its _id value in the
-        // next iteration or page.
-        if (i === limit - 1) {
-            next = doc._id;
+        if (req.query.limit !== undefined) {
+            limit = req.query.limit;
         }
-        i++;   
-    });
 
-    if (next == 0) {
-        return res.status(200).json({
-            entities: itemArray
+        if (req.query.next !== undefined) {
+            const oid = new ObjectId(req.query.next);
+            dbQueryObj._id = { $gt: oid };
+        }
+
+        console.log(req.query.limit);
+        console.log(req.query.next);
+
+        const entities = dbo.getEntitiesCollection();
+
+        const cursor = entities.find(dbQueryObj).sort({ _id: 1 });
+
+        let i = 0;
+        let itemArray = [];
+        let next = 0;
+        await cursor.forEach(doc => {
+            if (i < limit) {
+                itemArray.push(doc);
+            }
+
+            // Check if we have reached the end point for items that need to be returned. If we have, we set the 
+            // "next" value equal to the last value's _id so we can return all objects above its _id value in the
+            // next iteration or page.
+            if (i === limit - 1) {
+                next = doc._id;
+            }
+            i++;
         });
-    } else {
-        return res.status(200).json({
-            entities: itemArray,
-            next: next
+
+        if (next == 0) {
+            return res.status(200).json({
+                entities: itemArray
+            });
+        } else {
+            return res.status(200).json({
+                entities: itemArray,
+                next: next
+            });
+        }
+    } catch (err) {
+        return res.status(500).json({
+            error: err
         });
     }
-
 });
 
 
@@ -877,30 +957,36 @@ router.delete('/:orgName/collections/:collectionName/entities/:entityId', checkA
     }
     
 
-    // Delete the entity
-    const entities = dbo.getEntitiesCollection();
-    const result = await entities.deleteOne({
-        entityId: req.params.entityId, 
-        collection: req.params.collectionName, 
-        organization: req.passedData.organization, 
-        organizationId: req.passedData.organizationId
-    });
+    try {
+        // Delete the entity
+        const entities = dbo.getEntitiesCollection();
+        const result = await entities.deleteOne({
+            entityId: req.params.entityId,
+            collection: req.params.collectionName,
+            organization: req.passedData.organization,
+            organizationId: req.passedData.organizationId
+        });
 
-    if (!result.acknowledged) {
+        if (!result.acknowledged) {
+            return res.status(500).json({
+                error: "Could not delete the specified entity."
+            });
+        }
+
+        if (result.deletedCount < 1) {
+            return res.status(404).json({
+                error: "Entity not found."
+            });
+        }
+
+        return res.status(200).json({
+            message: "Entity successfully deleted."
+        });
+    } catch (err) {
         return res.status(500).json({
-            error: "Could not delete the specified entity."
+            error: err
         });
     }
-
-    if (result.deletedCount < 1) {
-        return res.status(404).json({
-            error: "Entity not found."
-        });
-    } 
-
-    return res.status(200).json({
-        message: "Entity successfully deleted."
-    });
 });
 
 

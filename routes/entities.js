@@ -1,3 +1,4 @@
+/*
 import express, { query } from 'express';
 import dbo from '../db/conn.js';
 import inspector from 'schema-inspector';
@@ -222,11 +223,7 @@ router.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
         dateTimeLastUpdated: parseInt(req.params.dateTimeLastUpdated)
     };
 
-    /*const options = {
-        returnDocument: "after"
-    };
-
-    const result = await entities.findOneAndReplace(query, entity, options);*/
+    
     const result = await entities.replaceOne(query, entity);
 
     if (!result.acknowledged || result.modifiedCount !== 1) {
@@ -311,22 +308,6 @@ router.get('/', checkAuth, async (req, res) => {
         // of those keys, simply add it to the query object if it is not in the query object already. Otherwise, add the parameter inside of the data
         // key to the query object in order to properly query for the desired user-defined field(s).
 
-        // <-------------------------- This section is what I see as a messier, less efficient way of handling the query string ---------------------->
-        /*if (tempArray[0] === 'entityId' || tempArray[0] === 'collection' || tempArray[0] === 'collectionId' || tempArray[0] === 'organization' || 
-        tempArray[0] === 'organizationId' || tempArray[0] === 'createdBy' || tempArray[0] === 'dateTimeLastUpdated' || tempArray[0] === 'limit') {
-            if (tempArray[0] !== 'organizaitonId' && tempArray[0] !== 'limit' && tempArray[0] !== 'next') {
-                dbQueryObj[tempArray[0]] = tempArray[1];
-            } else if (tempArray[0] === 'limit') {
-                limit = parseInt(tempArray[1]);
-            } else if (tempArray[0] === 'next') {
-                // We get the next set of returns for the query presented
-                query._id = {$lt: parseInt(tempArray[1])};
-            }
-        } else {
-            // We must be dealing with the data portion of the object in the query, so place the query param inside a JSON object called data.
-            dbQueryObj.data[tempArray[0]] = tempArray[1];
-        }*/
-        // <------------------------------------------------------------------------------------------------------------------------------------------>
 
         if (tempArray[0] === 'organizationId') {
             // Skip the iteration and do nothing
@@ -355,48 +336,12 @@ router.get('/', checkAuth, async (req, res) => {
         
     }
 
-    // Determine if the data portion of the query object is empty. If it is empty, delete it from the query object
-    /*if (Object.keys(dbQueryObj.data).length === 0) {
-        delete dbQueryObj.data;
-    }*/
 
     console.log(`DB Query Object: ${JSON.stringify(dbQueryObj)}`);
 
     // Query the database
     const entities = dbo.getEntitiesCollection();
     
-
-//<--------This section converts query result directly to an array. I think there is a better way to handle it that also allows for pagination.---------->
-    // NOTE: This can be dangerous if the number of documents returned is too high and exceeds memory available on the machine it is running on. 
-    // It is better practice to use a forEach, however, I think the best solution for this particular case is to limit people from getting too
-    // many documents at one time.
-    /*
-    const result = entities.find(dbQueryObj).sort({_id: -1}).limit(limit);
-    const items = await result.toArray();
-
-    // Check if the array is empty or only has one result
-    if (items.length == 0) {
-        return res.status(200).json({
-            entities: "",
-        });
-    } else if (items.length == 1) {
-        return res.status(200).json({
-            entities: items[0]
-        });
-    }
-
-    console.log(items);
-
-    const next = items[items.length - 1]._id;
-    //const lastItem = items[items.length - 1];
-    //console.log(`Last Item: ${lastItem}`);
-    //const next = lastItem["_id"];
-
-    return res.status(200).json({
-        entities: items,
-        next: next
-    });*/
-//<------------------------------------------------------------------------------------------------------------------------>
 
     const cursor = entities.find(dbQueryObj).sort({_id: 1});
 
@@ -485,3 +430,5 @@ router.post('/queries', checkAuth, async (req, res) => {
 
 
 export default router;
+
+*/

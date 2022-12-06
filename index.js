@@ -30,9 +30,9 @@ const server = async (port) => {
 
     app.use('/api/v1/organizations', organizationsRoute);
 
-    app.use('/api/v1/entities', entitiesRoute);
+    //app.use('/api/v1/entities', entitiesRoute);
 
-    app.use('/api/v1/collections', collectionsRoute);
+    //app.use('/api/v1/collections', collectionsRoute);
 
     app.listen(process.env.PORT || port, () => {
         if (process.env.PORT) console.log(`Server listening on port ${process.env.PORT}`);

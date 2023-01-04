@@ -5,6 +5,10 @@ const swagger = {
     "title": "Rentity",
     "description": "Create entities and rent them out to your users in any way you like. Start by creating an organization account. With that account, users can add collections and entities. Collections can define a description which can define common data among all of the collection's entities. Entities are objects or things whose state can be represented in the Rentity API database. Users define how to describe an entity."
   },
+  "servers": {
+    "url": "http://139.144.21.127:90/api/v1/",
+    "description": "Current live server"
+  },
   "paths": {
     "/organizations": {
       "post": {

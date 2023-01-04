@@ -11,8 +11,8 @@ I apologize for the code not being very readable (there is commented out code ev
 and have not cleaned it up. The only route in the routes folder that is currently being used is the organizations.js route. I recently decided to make
 a hierarchical route structure in order to make things appear more logically to the end user. Despite the messiness, the API works and is currently
 deployed on a linode server if you would like to play around with it. I did write, to the best of my ability, Open API documentation on the API,
-so please refer to that if you wish to use it at all. You should be able to access the documentation either by looking at the documentation.js route or by 
-sending a get request to the documentation route.
+so please refer to that if you wish to use it at all. You should be able to access the documentation either by looking at the documentation.js file or by 
+sending a get request to /api/v1 route.
 
 I have actually implemented a working application using this API, however there are many improvements that need to take place. For one, the code
 needs to be reorganized. The hierarchical routes can be placed in separate files so we don't have all of the routes in one big file all 

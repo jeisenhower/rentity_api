@@ -275,6 +275,8 @@ router.delete('/:orgName', checkAuth, async (req, res) => {
 
 // <------------ Begin "experimental routes". We will see if these make for a better use experience than the non-hierarchical routes ------------->
 
+
+
 // Create a new collection within an organization
 router.post('/:orgName/collections', checkAuth, async (req, res) => {
     let organizationId = req.passedData.organizationId;

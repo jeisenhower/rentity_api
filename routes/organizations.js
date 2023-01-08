@@ -7,8 +7,6 @@ import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
-//const algorithm = 'aes-256-ctr';
-//const secretKey = 'vOVH6sdmpNWjRRIqCc7rdxs01lwHzfr3';
 
 const validateEmail = (email) => {
     return email.match(
@@ -68,53 +66,6 @@ async function checkAuth(req, res, next) {
     }
 
 }
-
-/*async function checkAuth(req, res, next) {
-    if (req.headers['x-api-key'] !== undefined) {
-        
-
-        // Encrypt the api key and search for the matching api key in the database
-        let encryptedAPIKey = hash.encrypt(req.headers['x-api-key']);
-        console.log(`Encrypted API key: ${encryptedAPIKey}`);
-        let reDecrypted = hash.decrypt(encryptedAPIKey);
-        console.log(`Re-decrypted api key: ${reDecrypted}`);
-
-        const organizations = dbo.getOrganizationsCollection();
-        let organization = await organizations.findOne({apiKey: encryptedAPIKey});
-        console.log(`Organization: ${JSON.stringify(organization)}`);
-
-        if (organization == null) {
-            console.log("organization was null");
-            return res.status(401).json({
-                error: "Access denied. Invalid API key."
-            });
-        }
-
-        let decryptedAPIKey = hash.decrypt(organization.apiKey);
-        if (decryptedAPIKey !== req.headers['x-api-key']) {
-            console.log("Api key did not match when decrypted");
-            return res.status(401).json({
-                error: "Access denied. Invalid API key."
-            });
-        }
-
-        req.passedData = {
-            organization: organization.organization,
-            organizationId: organization.organizationId,
-            createdBy: organization.organizationId
-        };
-        next();
-    } else if (req.headers['token']) {
-        return res.status(401).json({
-            error: "The Rentity API does not yet support the use of tokens; only API keys at the moment. Please check back later."
-        });
-    } else {
-        return res.status(401).json({
-            error: "Auth format not recognized."
-        });
-    }
-
-}*/
 
 
 // Creates a user and generates an API key for that user. The user can then use that API key to create collections and entities. They will have to create a 
@@ -532,17 +483,6 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
             i++;
         });
 
-        /*
-        // Query the number of entities belonging to the collection
-                const entityCount = await entities.countDocuments({
-                    collection: doc.name, 
-                    collectionId: doc.collectionId, 
-                    organization: req.passedData.organization, 
-                    organizationId: req.passedData.organizationId
-                });
-                doc.numEntities = entityCount;
-         */
-
         // Find the number of entities belonging to each collection in the array of collections and add it to the collection data
         for (let item of itemArray) {
             // Query the number of entities belonging to the collection
@@ -554,7 +494,6 @@ router.post('/:orgName/collections/queries', checkAuth, async (req, res) => {
             });
             item.numEntities = entityCount;
         }
-
 
 
         if (next == 0) {
@@ -957,7 +896,7 @@ router.delete('/:orgName/collections/:collectionName/entities/:entityId', checkA
     }
     
 
-    try {
+    try { 
         // Delete the entity
         const entities = dbo.getEntitiesCollection();
         const result = await entities.deleteOne({

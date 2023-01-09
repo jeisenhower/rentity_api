@@ -16,7 +16,7 @@ import CryptoJS from 'crypto-js';
 const encrypt = (content) => {
     var ciphertext = CryptoJS.AES.encrypt(content, process.env.SECRET_KEY).toString();
     return ciphertext;
-}
+};
 
 
 /*const decrypt = (content, iv) => {
@@ -31,7 +31,7 @@ const decrypt = (encryptedContent) => {
     var bytes  = CryptoJS.AES.decrypt(encryptedContent, process.env.SECRET_KEY);
     var originalText = bytes.toString(CryptoJS.enc.Utf8);
     return originalText;
-}
+};
 
 
 const hash = {

@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import dbo from './db/conn.js';
-import organizationsRoute from './routes/organizations.js';
+import organizationsRouter from './routes/organizations.js';
 import swagger from './documentation.js';
 
 
@@ -20,7 +20,7 @@ const server = async (port) => {
         return res.status(200).json(swagger);
     });
 
-    app.use('/api/v1/organizations', organizationsRoute);
+    app.use('/api/v1/organizations', organizationsRouter);
 
     app.listen(process.env.PORT || port, () => {
         if (process.env.PORT) console.log(`Server listening on port ${process.env.PORT}`);

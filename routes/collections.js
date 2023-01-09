@@ -7,6 +7,8 @@ import checkAuth from '../auth.js';
 
 const collectionsRouter = express.Router({mergeParams: true});
 
+
+
 // Create a new collection within an organization
 collectionsRouter.post('/', checkAuth, async (req, res) => {
     let organizationId = req.passedData.organizationId;
@@ -341,6 +343,6 @@ collectionsRouter.delete('/:collectionName', checkAuth, async (req, res) => {
 
 });
 
-collectionsRouter.use('/:collectionName/entities', entitiesRouter);
+//collectionsRouter.use('/:collectionName/entities', entitiesRouter);
 
 export default collectionsRouter;

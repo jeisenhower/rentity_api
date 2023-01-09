@@ -225,7 +225,8 @@ orgRouter.delete('/:orgName', checkAuth, async (req, res) => {
 
 // Connect to the collections Router from the collections.js route file. This will allow us to organize the hierarchical format of the api in cleaner
 // presentation
-orgRouter.use(':orgName/collections', collectionsRouter);
+
+//orgRouter.use(':orgName/collections', collectionsRouter);
 
 
 

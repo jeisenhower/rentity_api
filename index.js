@@ -6,8 +6,6 @@ import collectionsRouter from './routes/collections.js';
 import entitiesRouter from './routes/entities.js';
 import swagger from './documentation.js';
 
-// TODO: Test the newly added routing strategy with the local docker image using docker-compose
-
 const server = async (port) => {
 
     const app = express();

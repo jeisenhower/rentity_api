@@ -2,7 +2,6 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import dbo from '../db/conn.js';
 import { ObjectId } from 'mongodb';
-import entitiesRouter from './entities.js';
 import checkAuth from '../auth.js';
 
 const collectionsRouter = express.Router({mergeParams: true});
@@ -98,8 +97,7 @@ collectionsRouter.post('/', checkAuth, async (req, res) => {
     }
 });
 
-// Update the collection (other than the schema)
-// TODO: Need to figure out how to handle when a user wants to delete a field from the description in the collection
+
 collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
@@ -343,6 +341,5 @@ collectionsRouter.delete('/:collectionName', checkAuth, async (req, res) => {
 
 });
 
-//collectionsRouter.use('/:collectionName/entities', entitiesRouter);
 
 export default collectionsRouter;

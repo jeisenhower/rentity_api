@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateApiKey } from 'generate-api-key';
 import dbo from '../db/conn.js';
 import hash from '../encryption.js';
-import collectionsRouter from './collections.js';
 import checkAuth from '../auth.js';
 
 const orgRouter = express.Router();
@@ -220,19 +219,5 @@ orgRouter.delete('/:orgName', checkAuth, async (req, res) => {
     }
 });
 
-
-// <------------ Begin "experimental routes". We will see if these make for a better use experience than the non-hierarchical routes ------------->
-
-// Connect to the collections Router from the collections.js route file. This will allow us to organize the hierarchical format of the api in cleaner
-// presentation
-
-//orgRouter.use(':orgName/collections', collectionsRouter);
-
-
-
-
-
-
-// <---------------------------------------------------------------------------------------------------------------------------------------------->
 
 export default orgRouter;

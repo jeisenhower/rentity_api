@@ -2,6 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import dbo from '../db/conn.js';
 import { ObjectId } from 'mongodb';
+import checkAuth from '../auth.js';
 
 const entitiesRouter = express.Router({mergeParams: true});
 

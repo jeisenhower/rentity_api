@@ -7,7 +7,8 @@
   "scripts": {
     "test": "nodemon index.js",
     "start": "node index.js",
-    "swagger-autogen": "node swagger.js"
+    "swagger-autogen": "node swagger.js",
+    "lint": "eslint ./"
   },
   "author": "Joel Eisenhower",
   "license": "ISC",

@@ -16,12 +16,12 @@ async function checkAuth(req, res, next) {
             organization = await organizations.findOne({ organization: req.headers['organization'] });
         } else {
             return res.status(401).json({
-                error: "Organization name or ID must be provided in addition to the API key in request headers."
-            })
+                error: 'Organization name or ID must be provided in addition to the API key in request headers.'
+            });
         }
         if (organization == null) {
             return res.status(401).json({
-                error: "Organization does not exist. Access denied."
+                error: 'Organization does not exist. Access denied.'
             });
         }
 
@@ -31,7 +31,7 @@ async function checkAuth(req, res, next) {
 
         if (req.headers['x-api-key'] !== decryptedAPIKey) {
             return res.status(401).json({
-                error: "Access denied. Invalid API key."
+                error: 'Access denied. Invalid API key.'
             });
         }
 
@@ -43,11 +43,11 @@ async function checkAuth(req, res, next) {
         next();
     } else if (req.headers['token']) {
         return res.status(401).json({
-            error: "The Rentity API does not yet support the use of tokens; only API keys at the moment. Please check back later."
+            error: 'The Rentity API does not yet support the use of tokens; only API keys at the moment. Please check back later.'
         });
     } else {
         return res.status(401).json({
-            error: "Auth format not recognized."
+            error: 'Auth format not recognized.'
         });
     }
 

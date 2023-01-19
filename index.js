@@ -26,7 +26,9 @@ const server = async (port) => {
     app.use('/api/v1/organizations/:orgName/collections', collectionsRouter);
     app.use('/api/v1/organizations/:orgName/collections/:collectionName/entities', entitiesRouter);
 
+    // eslint-disable-next-line no-undef
     app.listen(process.env.PORT || port, () => {
+        // eslint-disable-next-line no-undef
         if (process.env.PORT) console.log(`Server listening on port ${process.env.PORT}`);
         else console.log(`Server listening on port ${port}`);
     });

@@ -7,11 +7,9 @@ import checkAuth from '../auth.js';
 
 const orgRouter = express.Router();
 
-
 const validateEmail = (email) => {
-    return email.match(
-      /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    );
+    //return email.match(/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+    return email.match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
 };
 
 
@@ -32,7 +30,7 @@ orgRouter.post('/', async (req, res) => {
     // Create a new organization
     if (!req.body.fname || !req.body.lname || !req.body.email || !req.body.organization) {
         return res.status(400).json({
-            error: "Improper user creation format"
+            error: 'Improper user creation format'
         });
     }
 
@@ -56,14 +54,14 @@ orgRouter.post('/', async (req, res) => {
 
         if (duplicates > 0) {
             return res.status(403).json({
-                error: "The organization name you provided already exists. Please choose another."
+                error: 'The organization name you provided already exists. Please choose another.'
             });
         }
 
         // Check the user's email format is correct
         if (!validateEmail(req.body.email)) {
             return res.status(400).json({
-                error: "Improper email format. Please provide a valid email address"
+                error: 'Improper email format. Please provide a valid email address'
             });
         }
 
@@ -98,9 +96,9 @@ orgRouter.post('/', async (req, res) => {
         const result = await orgCollection.insertOne(user);
 
         // Check if the storage was a success
-        if (result.acknowledged != true) {
+        if (result.acknowledged !== true) {
             return res.status(500).json({
-                error: "Could not store user account in the database. Please try again later."
+                error: 'Could not store user account in the database. Please try again later.'
             });
         }
 
@@ -113,7 +111,7 @@ orgRouter.post('/', async (req, res) => {
             lname: req.body.lname,
             email: req.body.email,
             collections: 0,
-            entities: 0,
+            entities: 0
         });
     } catch (err) {
         return res.status(500).json({
@@ -126,41 +124,41 @@ orgRouter.get('/:orgName', checkAuth, async (req, res) => {
     // Returns the public data on an organization
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
     try {
         const orgs = dbo.getOrganizationsCollection();
-    const org = await orgs.findOne({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    if (org == null) {
-        return res.status(404).json({
-            error: "No organization found."
+        const org = await orgs.findOne({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
+        if (org == null) {
+            return res.status(404).json({
+                error: 'No organization found.'
+            });
+        }
+
+        const collections = dbo.getCollectionsCollection();
+        const collectionsCount = await collections.countDocuments({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
+
+        const entities = dbo.getEntitiesCollection();
+        const entitiesCount = await entities.countDocuments({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
+
+        const obj = {
+            organization: org.organization,
+            organizationId: org.organizationId,
+            fname: org.fname,
+            lname: org.lname,
+            email: org.email,
+            collections: collectionsCount,
+            entities: entitiesCount
+        };
+
+        return res.status(200).json({
+            profile: obj
         });
-    }
-
-    const collections = dbo.getCollectionsCollection();
-    const collectionsCount = await collections.countDocuments({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-
-    const entities = dbo.getEntitiesCollection();
-    const entitiesCount = await entities.countDocuments({organization: req.passedData.organization, organizationId: req.passedData.organizationId});
-    
-    const obj = {
-        organization: org.organization,
-        organizationId: org.organizationId,
-        fname: org.fname,
-        lname: org.lname,
-        email: org.email,
-        collections: collectionsCount,
-        entities: entitiesCount
-    }
-
-    return res.status(200).json({
-        profile: obj
-    })
     } catch (err) {
         return res.status(500).json({
-            error: "Internal server error. Could not get organization data."
+            error: 'Internal server error. Could not get organization data.'
         });
     }
 });
@@ -169,7 +167,7 @@ orgRouter.get('/:orgName', checkAuth, async (req, res) => {
 orgRouter.delete('/:orgName', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
@@ -184,7 +182,7 @@ orgRouter.delete('/:orgName', checkAuth, async (req, res) => {
 
         if (org == null) {
             return res.status(404).json({
-                error: "Organization does not exist."
+                error: 'Organization does not exist.'
             });
         }
 
@@ -193,24 +191,24 @@ orgRouter.delete('/:orgName', checkAuth, async (req, res) => {
         const entityResult = await entities.deleteMany({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
         if (!entityResult.acknowledged) {
             return res.status(500).json({
-                error: "Could not delete entities."
+                error: 'Could not delete entities.'
             });
         }
         const collectionsResult = await collections.deleteMany({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
         if (!collectionsResult.acknowledged) {
             return res.status(500).json({
-                error: "Could not delete collections."
+                error: 'Could not delete collections.'
             });
         }
         const orgResult = await orgs.deleteOne({ organization: req.passedData.organization, organizationId: req.passedData.organizationId });
         if (!orgResult.acknowledged) {
             return res.status(500).json({
-                error: "Could not delete collections."
+                error: 'Could not delete collections.'
             });
         }
 
         return res.status(200).json({
-            message: "Your organization has been successfully deleted."
+            message: 'Your organization has been successfully deleted.'
         });
     } catch (err) {
         return res.status(500).json({
@@ -218,6 +216,5 @@ orgRouter.delete('/:orgName', checkAuth, async (req, res) => {
         });
     }
 });
-
 
 export default orgRouter;

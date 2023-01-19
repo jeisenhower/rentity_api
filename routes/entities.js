@@ -13,7 +13,7 @@ entitiesRouter.post('/', checkAuth, async (req, res) => {
 
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
@@ -28,25 +28,11 @@ entitiesRouter.post('/', checkAuth, async (req, res) => {
 
         if (collection == null) {
             return res.status(401).json({
-                error: "No matching collection found within the organization. Access denied."
+                error: 'No matching collection found within the organization. Access denied.'
             });
         }
 
-
-        // The collection exists. Check if it has a schema
-        if (collection.collectionSchema !== undefined) {
-            // Check the schema against the data field provided in the request body
-            if (!inspector.validate(collection.collectionSchema, req.body.data)) {
-                return res.status(400).json({
-                    error: "Entity does not match schema of the collection. All entities within a collection with a specified schema must match that schema"
-                });
-            }
-        }
-
-
-
         const entityId = uuidv4();
-
 
         const entityObj = {
             entityId: entityId,
@@ -65,7 +51,7 @@ entitiesRouter.post('/', checkAuth, async (req, res) => {
 
         if (!result.acknowledged) {
             return res.status(500).json({
-                error: "Could not persist new entity to the database. Please try again later."
+                error: 'Could not persist new entity to the database. Please try again later.'
             });
 
         }
@@ -84,7 +70,7 @@ entitiesRouter.post('/', checkAuth, async (req, res) => {
 entitiesRouter.get('/:entityId', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
@@ -98,7 +84,7 @@ entitiesRouter.get('/:entityId', checkAuth, async (req, res) => {
 
         if (entity == null) {
             return res.status(404).json({
-                error: "No matching entity found within the organization."
+                error: 'No matching entity found within the organization.'
             });
         } else {
             return res.status(200).json({
@@ -117,15 +103,15 @@ entitiesRouter.get('/:entityId', checkAuth, async (req, res) => {
 entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     } else if (req.params.dateTimeLastUpdated === undefined) {
         return res.status(400).json({
-            error: "Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds)."
+            error: 'Unable to update the entity. Both entity ID and dateTime last updated must be provided (in milliseconds).'
         });
     } else if (req.params.entityId === undefined) {
         return res.status(400).json({
-            error: "Unable to update entity. Both entity ID and datetime last updated must be provided (in milliseconds)."
+            error: 'Unable to update entity. Both entity ID and datetime last updated must be provided (in milliseconds).'
         });
     }
 
@@ -140,7 +126,7 @@ entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, r
 
         if (entity == null) {
             return res.status(404).json({
-                error: "No matching entity found within the organization. Access denied."
+                error: 'No matching entity found within the organization. Access denied.'
             });
         }
 
@@ -148,7 +134,7 @@ entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, r
         // Check that dateTime last updated matches
         if (parseInt(req.params.dateTimeLastUpdated) !== entity.dateTimeLastUpdated) {
             return res.status(403).json({
-                error: "DateTime last updated does not match entity."
+                error: 'DateTime last updated does not match entity.'
             });
         }
 
@@ -158,7 +144,7 @@ entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, r
 
         if (collection == null) {
             return res.status(404).json({
-                error: "Collection does not exist."
+                error: 'Collection does not exist.'
             });
         }
 
@@ -168,18 +154,12 @@ entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, r
         // Change the entity based on the entity ID provided.
         // Only allow changes to occur within the data field of the entity
         for (var key in req.body) {
-            if (req.body.hasOwnProperty(key)) {
+            /*if (req.body.hasOwnProperty(key)) {
                 // Add the property or change it
                 entity.data[key] = req.body[key];
-            }
-        }
-
-        if (collection.schema !== undefined) {
-            // Check the newly modified entity against the schema in the collection
-            if (!inspector.validate(collection.schema, entity.data)) {
-                return res.status(400).json({
-                    error: "The entity you are trying to modify belongs to a collection with a pre-defined schema. The entity's data must match that of the collection."
-                });
+            }*/
+            if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+                entity.data[key] = req.body[key];
             }
         }
 
@@ -193,7 +173,7 @@ entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, r
 
         if (!result.acknowledged || result.modifiedCount !== 1) {
             return res.status(500).json({
-                error: "Could not update the entity due to server error. Please try again later."
+                error: 'Could not update the entity due to server error. Please try again later.'
             });
         }
 
@@ -210,7 +190,7 @@ entitiesRouter.patch('/:entityId/:dateTimeLastUpdated', checkAuth, async (req, r
 entitiesRouter.post('/queries', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
@@ -279,15 +259,15 @@ entitiesRouter.delete('/:entityId', checkAuth, async (req, res) => {
     // Delete the entity and update the entity count within the collection, as well as update the global entity count within the organization profile
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     } else if (req.params.entityId === undefined) {
         return res.status(400).json({
-            error: "No entity ID provided."
+            error: 'No entity ID provided.'
         });
     } else if (req.params.collectionName === undefined) {
         return res.status(400).json({
-            error: "No collection name provided."
+            error: 'No collection name provided.'
         });
     }
     
@@ -304,18 +284,18 @@ entitiesRouter.delete('/:entityId', checkAuth, async (req, res) => {
 
         if (!result.acknowledged) {
             return res.status(500).json({
-                error: "Could not delete the specified entity."
+                error: 'Could not delete the specified entity.'
             });
         }
 
         if (result.deletedCount < 1) {
             return res.status(404).json({
-                error: "Entity not found."
+                error: 'Entity not found.'
             });
         }
 
         return res.status(200).json({
-            message: "Entity successfully deleted."
+            message: 'Entity successfully deleted.'
         });
     } catch (err) {
         return res.status(500).json({

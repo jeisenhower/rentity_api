@@ -10,8 +10,8 @@ const collectionsRouter = express.Router({mergeParams: true});
 
 // Create a new collection within an organization
 collectionsRouter.post('/', checkAuth, async (req, res) => {
-    let organizationId = req.passedData.organizationId;
-    let organization = req.passedData.organization;
+    const organizationId = req.passedData.organizationId;
+    const organization = req.passedData.organization;
     if (organizationId === undefined || organization === undefined) {
         return res.status(401).json({
             error: 'Improper authorization. Access denied'
@@ -21,14 +21,14 @@ collectionsRouter.post('/', checkAuth, async (req, res) => {
     // Check that the orgName matches the organization corresponding to key or token provided.
     if (req.params.orgName !== organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
 
     if (req.body.name === undefined) {
         return res.status(400).json({
-            error: "Improper collection creation format."
+            error: 'Improper collection creation format.'
         });
     }
 
@@ -45,10 +45,10 @@ collectionsRouter.post('/', checkAuth, async (req, res) => {
 
 
         // Make sure the collection name is unique for the user
-        const duplicates = await collectionsCollection.countDocuments({ organizationId: organizationId, name: name });
+        const duplicates = await collectionsCollection.countDocuments({ organizationId, name });
         if (duplicates > 0) {
             return res.status(400).json({
-                error: "Each collection within an organization must have a unique name."
+                error: 'Each collection within an organization must have a unique name.'
             });
         }
         console.log(`organizationId: ${organizationId}`);
@@ -57,13 +57,13 @@ collectionsRouter.post('/', checkAuth, async (req, res) => {
         // isPublic is used for access by other users. I may not use this and just use tokens specified to access certain collections and what permissions they
         // have to access those collections.
 
-        let collectionObj = {
-            name: name,
-            collectionId: collectionId,
+        const collectionObj = {
+            name,
+            collectionId,
             creator: req.passedData.createdBy,
-            organizationId: organizationId,
-            organization: organization,
-            dateTimeLastUpdated: Date.now(),
+            organizationId,
+            organization,
+            dateTimeLastUpdated: Date.now()
         };
 
         // One last thing to do is decide if we should include a schema key
@@ -81,7 +81,7 @@ collectionsRouter.post('/', checkAuth, async (req, res) => {
 
         if (!result.acknowledged) {
             return res.status(500).json({
-                error: "Could not store user account in the database. Please try again later."
+                error: 'Could not store user account in the database. Please try again later.'
             });
         }
 
@@ -97,19 +97,18 @@ collectionsRouter.post('/', checkAuth, async (req, res) => {
     }
 });
 
-
 collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     } else if (req.params.dateTimeLastUpdated === undefined) {
         return res.status(400).json({
-            error: "Unable to update the collection. Both collection anme and dateTime last updated must be provided (in milliseconds)."
+            error: 'Unable to update the collection. Both collection anme and dateTime last updated must be provided (in milliseconds).'
         });
     } else if (req.params.collectionName === undefined) {
         return res.status(400).json({
-            error: "Unable to update collection. Both collection name and datetime last updated must be provided (in milliseconds)."
+            error: 'Unable to update collection. Both collection name and datetime last updated must be provided (in milliseconds).'
         });
     }
 
@@ -125,7 +124,7 @@ collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, asyn
 
         if (collection == null) {
             return res.status(401).json({
-                error: "No matching collection found within the organization. Access denied."
+                error: 'No matching collection found within the organization. Access denied.'
             });
         }
 
@@ -133,7 +132,7 @@ collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, asyn
         // Check that dateTime last updated matches
         if (parseInt(req.params.dateTimeLastUpdated) !== collection.dateTimeLastUpdated) {
             return res.status(403).json({
-                error: "DateTime last updated does not match collection."
+                error: 'DateTime last updated does not match collection.'
             });
         }
 
@@ -141,8 +140,11 @@ collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, asyn
         collection.dateTimeLastUpdated = Date.now();
 
         // Update the collection description data only
-        for (let key in req.body) {
-            if (req.body.hasOwnProperty(key)) {
+        for (const key in req.body) {
+            /*if (req.body.hasOwnProperty(key)) {
+                collection.description[key] = req.body[key];
+            }*/
+            if (Object.prototype.hasOwnProperty.call(req.body, key)) {
                 collection.description[key] = req.body[key];
             }
         }
@@ -151,13 +153,13 @@ collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, asyn
 
         if (!result.acknowledged || result.modifiedCount !== 1) {
             return res.status(500).json({
-                error: "Could not update the collection due to server error. Please try again later."
+                error: 'Could not update the collection due to server error. Please try again later.'
             });
         }
 
         return res.status(200).json({
-            result: result,
-            collection: collection
+            result,
+            collection
         });
     } catch (err) {
         return res.status(500).json({
@@ -171,14 +173,14 @@ collectionsRouter.patch('/:collectionName/:dateTimeLastUpdated', checkAuth, asyn
 collectionsRouter.post('/queries', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
     try {
         let limit = 15;
 
-        let dbQueryObj = req.body;
+        const dbQueryObj = req.body;
 
         dbQueryObj.organization = req.passedData.organization;
         dbQueryObj.organizationId = req.passedData.organizationId;
@@ -197,7 +199,7 @@ collectionsRouter.post('/queries', checkAuth, async (req, res) => {
         const entities = dbo.getEntitiesCollection();
 
         let i = 0;
-        let itemArray = [];
+        const itemArray = [];
         let next = 0;
 
         // Attempted to count number of entities in each collection on the fly in the code below. Not sure if it will work in practice or not
@@ -216,7 +218,7 @@ collectionsRouter.post('/queries', checkAuth, async (req, res) => {
         });
 
         // Find the number of entities belonging to each collection in the array of collections and add it to the collection data
-        for (let item of itemArray) {
+        for (const item of itemArray) {
             // Query the number of entities belonging to the collection
             const entityCount = await entities.countDocuments({
                 collection: item.name,
@@ -228,19 +230,19 @@ collectionsRouter.post('/queries', checkAuth, async (req, res) => {
         }
 
 
-        if (next == 0) {
+        if (next === 0) {
             return res.status(200).json({
                 collections: itemArray
             });
         } else {
             return res.status(200).json({
                 collections: itemArray,
-                next: next
+                next
             });
         }
     } catch (err) {
         return res.status(500).json({
-            error: "Internal server error. Could not run query."
+            error: 'Internal server error. Could not run query.'
         });
     }
 });
@@ -249,11 +251,11 @@ collectionsRouter.post('/queries', checkAuth, async (req, res) => {
 collectionsRouter.get('/:collectionName', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     } else if (req.params.collectionName === undefined) {
         return res.status(400).json({
-            error: "Missing collection name from URL."
+            error: 'Missing collection name from URL.'
         });
     }
 
@@ -268,7 +270,7 @@ collectionsRouter.get('/:collectionName', checkAuth, async (req, res) => {
 
         if (collection == null) {
             return res.status(404).json({
-                error: "No collection matching this collection name found within the organization."
+                error: 'No collection matching this collection name found within the organization.'
             });
         }
 
@@ -295,7 +297,7 @@ collectionsRouter.get('/:collectionName', checkAuth, async (req, res) => {
 collectionsRouter.delete('/:collectionName', checkAuth, async (req, res) => {
     if (req.params.orgName !== req.passedData.organization) {
         return res.status(401).json({
-            error: "Provided API key does not have permission to access this organization."
+            error: 'Provided API key does not have permission to access this organization.'
         });
     }
 
@@ -317,7 +319,7 @@ collectionsRouter.delete('/:collectionName', checkAuth, async (req, res) => {
         const resultA = await entities.deleteMany(entityQueryObj);
         if (!resultA.acknowledged) {
             return res.status(500).json({
-                error: "Could not delete entities belonging to the collection due to server error. Collection and entities remain undeleted."
+                error: 'Could not delete entities belonging to the collection due to server error. Collection and entities remain undeleted.'
             });
         }
     
@@ -326,7 +328,7 @@ collectionsRouter.delete('/:collectionName', checkAuth, async (req, res) => {
         const resultB = await collections.deleteOne(collectionQueryObj);
         if (resultB.deletedCount !== 1) {
             return res.status(500).json({
-                error: "Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself."
+                error: 'Entities were deleted but the collection could not be deleted due to server error. Please try again to delete the collection itself.'
             });
         }
         
@@ -338,8 +340,6 @@ collectionsRouter.delete('/:collectionName', checkAuth, async (req, res) => {
             error: err
         });
     }
-
 });
-
 
 export default collectionsRouter;
